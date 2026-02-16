@@ -43,14 +43,15 @@ def show():
         .kpi-card-green, .kpi-card-red, .kpi-card-purple {
             background: #ffffff;
             border: 1px solid #e5e7eb;
-            border-radius: 8px; padding: 10px 8px;
+            border-radius: 8px; padding: 10px 6px;
             color: #1e293b;
             text-align: center; margin: 2px 0;
             box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            min-width: 0; overflow: visible;
         }
-        .kpi-value { font-size: 18px; font-weight: 700; margin: 2px 0; line-height: 1.2; color: #0f172a; }
-        .kpi-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-        .kpi-sublabel { font-size: 9px; color: #94a3b8; margin-top: 1px; }
+        .kpi-value { font-size: 17px; font-weight: 700; margin: 2px 0; line-height: 1.2; color: #0f172a; white-space: nowrap; }
+        .kpi-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; overflow: visible; }
+        .kpi-sublabel { font-size: 9px; color: #94a3b8; margin-top: 1px; white-space: nowrap; }
         div[data-testid="stSidebar"] {
             background-color: #f8fafc;
             min-width: 280px !important; max-width: 320px !important; width: 300px !important;
@@ -195,13 +196,13 @@ def show():
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(f"""<div class="kpi-card-teal">
-            <div class="kpi-label">OTC Umsatz Jahr 1</div>
+            <div class="kpi-label">OTC Umsatz J1</div>
             <div class="kpi-value">EUR {kpis['year1_otc_revenue']/1e6:.1f}M</div>
             <div class="kpi-sublabel">Herstellerumsatz</div>
         </div>""", unsafe_allow_html=True)
     with c2:
         st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-label">Gesamtumsatz 5 Jahre</div>
+            <div class="kpi-label">Gesamtumsatz 5J</div>
             <div class="kpi-value">EUR {kpis['total_5y_revenue']/1e6:.0f}M</div>
             <div class="kpi-sublabel">Rx + OTC kumuliert</div>
         </div>""", unsafe_allow_html=True)
@@ -218,7 +219,7 @@ def show():
         </div>""", unsafe_allow_html=True)
     with c4:
         st.markdown(f"""<div class="kpi-card-green">
-            <div class="kpi-label">Gewinn 5 Jahre</div>
+            <div class="kpi-label">Gewinn 5J</div>
             <div class="kpi-value">EUR {kpis['total_5y_profit']/1e6:.0f}M</div>
             <div class="kpi-sublabel">nach Marketing & COGS</div>
         </div>""", unsafe_allow_html=True)
@@ -233,19 +234,19 @@ def show():
         </div>""", unsafe_allow_html=True)
     with c6:
         st.markdown(f"""<div class="kpi-card">
-            <div class="kpi-label">Viagra Markenanteil M12</div>
+            <div class="kpi-label">Markenanteil M12</div>
             <div class="kpi-value">{kpis['brand_share_m12']:.0%}</div>
-            <div class="kpi-sublabel">vs. Generika OTC</div>
+            <div class="kpi-sublabel">Viagra vs. Generika</div>
         </div>""", unsafe_allow_html=True)
     with c7:
         st.markdown(f"""<div class="kpi-card-red">
-            <div class="kpi-label">Rx-Rueckgang gesamt</div>
+            <div class="kpi-label">Rx-Rückgang</div>
             <div class="kpi-value">{kpis['rx_decline_total']:.0%}</div>
-            <div class="kpi-sublabel">ueber 5 Jahre</div>
+            <div class="kpi-sublabel">über 5 Jahre</div>
         </div>""", unsafe_allow_html=True)
     with c8:
         st.markdown(f"""<div class="kpi-card-green">
-            <div class="kpi-label">Therapiequote Neu</div>
+            <div class="kpi-label">Therapiequote</div>
             <div class="kpi-value">{kpis['treatment_rate_final']:.0%}</div>
             <div class="kpi-sublabel">vorher: 30%</div>
         </div>""", unsafe_allow_html=True)
