@@ -100,9 +100,13 @@ class GenericParams:
     aut_idem_full_months: int = 12
     my_aut_idem_capture: float = 0.30     # My share of aut-idem substitutions
 
+    # Aut-idem Ausschluss (Arzt schließt Substitution aus → Tender greift nicht)
+    aut_idem_exclusion_rate: float = 0.15  # 15% der Rezepte mit aut-idem-Ausschluss
+
     # Tender parameters
     tender_enabled: bool = True
     tender_start_month: int = 3           # Months after launch until first tender
+    my_tender_share: float = 0.33         # Mein Anteil bei Mehrfachvergabe (z.B. 1/3 bei 3 Partnern)
 
     # Individual Kasse tenders (name, covered_lives_mio, win_probability, volume_uplift)
     tender_kassen: list = None
@@ -191,8 +195,11 @@ def _tender_share_of_volume(
     """
     Anteil meines Gesamtvolumens, der durch Rabattverträge (§130a SGB V) gedeckt ist.
 
-    Decision cascade: Tender hat Vorrang vor aut-idem und organic.
-    Wenn eine Kasse einen Rabattvertrag hat, MUSS die Apotheke liefern.
+    Zwei Abzüge auf den Brutto-Tender-Anteil:
+    1. Aut-idem-Ausschluss: Arzt schließt Substitution aus → Apotheke
+       darf nicht substituieren → Rabattvertrag greift nicht.
+    2. Mehrfachvergabe: Kasse vergibt an 3-4 Generika-Anbieter
+       gleichzeitig (Versorgungssicherheit) → mein Anteil < 100%.
 
     Returns:
         (tender_share, details_dict)
@@ -218,13 +225,23 @@ def _tender_share_of_volume(
         })
 
     # Tender-Anteil meines Volumens:
-    # Gewonnene Kassen decken diesen Anteil des GKV-Marktes ab.
+    # Brutto: Gewonnene Kassen × Ramp
+    # Abzug 1: Aut-idem-Ausschluss (Arzt schließt Substitution aus)
+    # Abzug 2: Mehrfachvergabe (mein Anteil unter Vertragspartnern)
     # Cap bei 0.80 — PKV, Krankenhäuser, Selbstzahler haben keine Tender.
-    tender_share = min(0.80, total_expected_gkv_share * ramp)
+    brutto = total_expected_gkv_share * ramp
+    tender_share = min(0.80,
+        brutto
+        * (1 - params.aut_idem_exclusion_rate)
+        * params.my_tender_share
+    )
 
     return tender_share, {
         "tender_active": True,
         "tender_share_of_volume": round(tender_share, 4),
+        "tender_share_brutto": round(brutto, 4),
+        "aut_idem_exclusion_rate": params.aut_idem_exclusion_rate,
+        "my_tender_share": params.my_tender_share,
         "kasse_count": len(kasse_details),
     }
 

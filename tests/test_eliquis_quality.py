@@ -302,7 +302,7 @@ if share_before == 0.0:
 else:
     record("T11a", "Tender: share=0.0 vor Start", "FAIL", f"got {share_before}")
 
-# After tender_start: share should be > 0.0
+# After tender_start: share should be > 0.0 (reduced by exclusion + multi-award)
 share_after, details = _tender_share_of_volume(t=20, params=g_test)
 if share_after > 0.0:
     record("T11b", "Tender: share>0.0 nach Start", "PASS", f"share={share_after:.4f}")
@@ -316,6 +316,20 @@ if share_disabled == 0.0:
     record("T11c", "Tender: share=0.0 wenn deaktiviert", "PASS")
 else:
     record("T11c", "Tender: share=0.0 wenn deaktiviert", "FAIL", f"got {share_disabled}")
+
+# Higher exclusion rate → lower tender share
+g_high_excl = GenericParams(tender_enabled=True, tender_start_month=3,
+                            aut_idem_exclusion_rate=0.40, my_tender_share=0.33)
+g_low_excl = GenericParams(tender_enabled=True, tender_start_month=3,
+                           aut_idem_exclusion_rate=0.05, my_tender_share=0.33)
+share_high, _ = _tender_share_of_volume(t=20, params=g_high_excl)
+share_low, _ = _tender_share_of_volume(t=20, params=g_low_excl)
+if share_low > share_high > 0:
+    record("T11d", "Tender: hoehere Exclusion senkt Share", "PASS",
+           f"low_excl={share_low:.4f} > high_excl={share_high:.4f}")
+else:
+    record("T11d", "Tender: hoehere Exclusion senkt Share", "FAIL",
+           f"low_excl={share_low:.4f}, high_excl={share_high:.4f}")
 
 
 # ═══════════════════════════════════════════════════════════════════════

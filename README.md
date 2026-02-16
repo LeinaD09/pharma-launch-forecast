@@ -68,12 +68,13 @@ Two perspectives with independent parameter sets:
 
 | Priority | Volume Source | Mechanism | Regulatory Basis |
 |---|---|---|---|
-| 1 (highest) | Tender | Krankenkasse exclusive contracts | Par.130a SGB V (Rabattvertraege) |
+| 1 (highest) | Tender | Krankenkasse multi-award contracts, reduced by aut-idem exclusion | Par.130a SGB V (Rabattvertraege) |
 | 2 | Aut-idem | Pharmacy-level substitution (non-tender remainder) | SGB V Par.129 (mandatory generic substitution) |
 | 3 | Organic | Physician switching, formulary listing (residual) | Standard market access |
 
 **Key model features:**
 - Decision cascade: Tender > Aut-idem > Organic (no double-counting)
+- Tender volume adjusted for **aut-idem exclusion** (physician override) and **multi-award contracts** (3-4 partners per Kasse)
 - Aut-idem ramp curve tied to Festbetrag (reference pricing) timeline
 - Per-Kasse tender modeling (TK, BARMER, DAK, AOKs) with win probabilities and ramp
 - Volume decomposition: organic vs. aut-idem vs. tender
