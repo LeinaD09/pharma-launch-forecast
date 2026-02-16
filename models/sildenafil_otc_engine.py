@@ -155,6 +155,7 @@ class SildenafilOtcParams:
     marketing_monthly_eur: float = 500_000   # DTC brand building, cost only (no volume effect)
     marketing_maintenance_factor: float = 0.5  # reduce to 50% after ramp phase
     marketing_ramp_months: int = 18            # full spend for first 18 months, then maintenance
+    marketing_taper_months: int = 6            # gradual transition to maintenance level
 
     # --- Costs --------------------------------------------------
     cogs_pct: float = 0.12                   # low COGS for established molecule
@@ -353,7 +354,10 @@ def forecast_sildenafil_otc(
         # --- Marketing (cost only, no volume effect) -----------
         marketing_spend = params.marketing_monthly_eur
         if m > params.marketing_ramp_months:
-            marketing_spend *= params.marketing_maintenance_factor
+            # Gradual taper from full to maintenance level
+            taper_progress = min(1.0, (m - params.marketing_ramp_months) / max(1, params.marketing_taper_months))
+            mktg_factor = 1.0 + (params.marketing_maintenance_factor - 1.0) * taper_progress
+            marketing_spend *= mktg_factor
 
         # --- Profitability -------------------------------------
         total_revenue = rx_revenue + total_otc_manufacturer_revenue
@@ -477,6 +481,14 @@ def calculate_kpis_sildenafil(df: pd.DataFrame) -> dict:
     online_share_m12 = float(m12["ch_online_share"].iloc[0]) if len(m12) > 0 else 0
     online_share_m24 = float(m24["ch_online_share"].iloc[0]) if len(m24) > 0 else 0
 
+    # Breakeven month: first month where cumulative profit > 0
+    breakeven = df[df["cumulative_profit"] > 0]
+    breakeven_month = int(breakeven.iloc[0]["month"]) if len(breakeven) > 0 else None
+
+    # Marketing ROI: cumulative profit / cumulative marketing spend
+    total_marketing = last["cumulative_marketing"]
+    marketing_roi = last["cumulative_profit"] / total_marketing if total_marketing > 0 else 0
+
     return {
         "year1_otc_revenue": y1["otc_manufacturer_revenue"].sum(),
         "year1_rx_revenue": y1["rx_revenue"].sum(),
@@ -499,4 +511,6 @@ def calculate_kpis_sildenafil(df: pd.DataFrame) -> dict:
         "online_share_m24": online_share_m24,
         "treatment_rate_final": last["treatment_rate_effective"],
         "peak_new_patients": int(df["active_new_patients"].max()),
+        "breakeven_month": breakeven_month,
+        "marketing_roi": marketing_roi,
     }
