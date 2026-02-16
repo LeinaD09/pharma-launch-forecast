@@ -238,6 +238,11 @@ def show():
     # HEADER
     # ===================================================================
     st.markdown("")
+    st.markdown("#### Sildenafil Rx-to-OTC Switch Patient-Based Forecast")
+    st.markdown(f"<span style='font-size:13px;color:#64748b;'>"
+                f"Viatris / Viagra Connect – Szenario: <b>{scenario}</b> | "
+                f"Epidemiologie-basiertes Patienten-Modell</span>",
+                unsafe_allow_html=True)
 
     co_rev = kpis.get("crossover_month")
     co_tabs = kpis.get("crossover_month_tablets")
