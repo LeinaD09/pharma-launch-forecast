@@ -533,9 +533,9 @@ def build_model():
     gen_scenarios = {}
     base_gen = params_g  # use the base-case params already computed above
     for sn, gp in [
-        ("Bear Case", {"target_peak_share": 0.06, "price_discount_vs_originator": 0.35}),
+        ("Bear Case", {"target_generic_share": 0.10, "price_discount_vs_originator": 0.35}),
         ("Base Case", {}),
-        ("Bull Case", {"target_peak_share": 0.15, "price_discount_vs_originator": 0.50}),
+        ("Bull Case", {"target_generic_share": 0.30, "price_discount_vs_originator": 0.50}),
     ]:
         p = dataclasses.replace(base_gen, **gp)
         gen_scenarios[sn] = calculate_kpis_generic(forecast_generic(p, forecast_months=60))

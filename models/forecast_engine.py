@@ -71,20 +71,21 @@ class OriginatorParams:
 @dataclass
 class GenericParams:
     """Parameters for generic entrant (Market Opportunity) perspective."""
-    # Market context
+    # Market context (NOAK-Gesamtmarkt)
     total_market_monthly_trx: int = 4_200_000
     originator_price_per_trx: float = 91.50
+    apixaban_market_share: float = 0.42         # Apixaban-Anteil am NOAK-Markt
 
-    # My generic product
+    # Generika-Segment (Anteil der Apixaban-Verordnungen, die generisch werden)
+    generic_segment_peak_share: float = 0.55    # Peak share aller Generika am Apixaban-Markt
+    generic_segment_months_to_peak: int = 24    # Monate bis der Generika-Markt seinen Peak erreicht
+
+    # My generic product (Anteil am Generika-Segment)
     my_company_name: str = "Mein Generikum"
     launch_month_offset: int = 0
     price_discount_vs_originator: float = 0.45
-    target_peak_share: float = 0.10
+    target_generic_share: float = 0.20          # Mein Anteil am Generika-Segment (nicht am Gesamtmarkt)
     months_to_peak: int = 18
-
-    # Generika-Segment (Gesamtmarkt inkl. meines Produkts)
-    generic_segment_peak_share: float = 0.55    # Peak share aller Generika zusammen
-    generic_segment_months_to_peak: int = 24    # Monate bis der Generika-Markt seinen Peak erreicht
 
     # Costs & profitability
     cogs_pct_of_revenue: float = 0.25
@@ -401,9 +402,17 @@ def forecast_generic(
         market_growth = (1 + params.market_growth_annual / 12) ** i
         total_market_trx = params.total_market_monthly_trx * market_growth
 
-        # Generika-Segment S-curve (used in both branches)
+        # Apixaban-Segment: adressierbarer Markt
+        apixaban_trx = total_market_trx * params.apixaban_market_share
+
+        # Generika-Segment S-curve: Anteil der Apixaban-Verordnungen, die generisch werden
         seg_midpoint = params.generic_segment_months_to_peak / 2
         seg_steepness = 4.0 / params.generic_segment_months_to_peak * 1.2
+        total_generic_share = float(_logistic_curve(
+            np.array([months_since_loe]),
+            midpoint=seg_midpoint, steepness=seg_steepness
+        )[0]) * params.generic_segment_peak_share
+        generic_segment_trx = apixaban_trx * total_generic_share
 
         if not is_launched:
             my_share = 0.0
@@ -414,23 +423,21 @@ def forecast_generic(
             aut_idem_trx = 0
             tender_trx = 0
             organic_trx = 0
-            total_generic_share = float(_logistic_curve(
-                np.array([months_since_loe]),
-                midpoint=seg_midpoint, steepness=seg_steepness
-            )[0]) * params.generic_segment_peak_share
         else:
             t = months_since_launch
 
             # ══════════════════════════════════════════════════
-            # STEP 1: Gesamtvolumen über S-Curve bestimmen
+            # STEP 1: Mein Volumen = Generika-Segment × mein Anteil
             # ══════════════════════════════════════════════════
+            # target_generic_share = mein Anteil am Generika-Segment
             midpoint = params.months_to_peak / 2
             steepness = 4.0 / params.months_to_peak * 1.5
             uptake = float(_logistic_curve(np.array([t]), midpoint, steepness)[0])
 
-            effective_peak = min(params.target_peak_share, params.generic_segment_peak_share)
-            my_share = effective_peak * uptake
-            my_trx = int(total_market_trx * my_share)
+            my_generic_share = params.target_generic_share * uptake
+            my_trx = int(generic_segment_trx * my_generic_share)
+            # my_share = Anteil am NOAK-Gesamtmarkt (fuer Chart/KPI)
+            my_share = my_trx / total_market_trx if total_market_trx > 0 else 0.0
 
             # ══════════════════════════════════════════════════
             # STEP 2: Decision Cascade – Zuordnung auf Kanäle
@@ -464,11 +471,6 @@ def forecast_generic(
             my_price = round(max(my_price, 20.0), 2)
 
             my_revenue = my_trx * my_price
-
-            total_generic_share = float(_logistic_curve(
-                np.array([months_since_loe]),
-                midpoint=seg_midpoint, steepness=seg_steepness
-            )[0]) * params.generic_segment_peak_share
 
         # Profitability
         cogs = my_revenue * params.cogs_pct_of_revenue if is_launched else 0

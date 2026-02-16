@@ -176,6 +176,10 @@ def show():
                 "Marktwachstum p.a. (%)", 0.0, 5.0, 2.0, 0.5,
                 help="NOAK-Marktwachstum"
             ) / 100
+            apixaban_share = st.slider(
+                "Marktanteil Apixaban (%)", 20, 60, 42, 2,
+                help="Anteil von Apixaban (Eliquis) am NOAK-Gesamtmarkt"
+            )
 
         # ─── Aut-idem ───────────────────────────────────────────────────────
         with st.expander("Aut-idem / Substitution", expanded=False):
@@ -244,19 +248,21 @@ def show():
             )
 
         else:
-            # ─── Generika ───────────────────────────────────────────────────
+            # ─── Generika-Segment ──────────────────────────────────────────
+            with st.expander("Generika-Segment (Apixaban)", expanded=False):
+                generic_segment_peak = st.slider("Generika Peak-Anteil (%)", 20, 70, 55, 5,
+                                                  help="Anteil der Apixaban-Verordnungen, die generisch werden")
+                generic_segment_months = st.slider("Mon. bis Peak", 12, 48, 24, 3,
+                                                    help="Monate nach LOE bis Generika-Segment seinen Peak erreicht")
+
+            # ─── Mein Generikum ────────────────────────────────────────────
             with st.expander("Mein Generikum", expanded=True):
                 company_name = st.text_input("Firma", value="Mein Unternehmen")
                 launch_offset = st.slider("Launch nach LOE (Mon.)", 0, 12, 0, 1)
                 price_discount = st.slider("Preis-Discount (%)", 20, 70, 45, 5)
-                target_peak = st.slider("Peak-Marktanteil (%)", 2, 25, 10, 1)
+                target_peak = st.slider("Mein Anteil am Generika-Segment (%)", 5, 50, 20, 5,
+                                         help="Mein Anteil an allen Apixaban-Generika (nicht am NOAK-Gesamtmarkt)")
                 months_to_peak = st.slider("Mon. bis Peak", 6, 36, 18, 3)
-
-            with st.expander("Generika Marktanteil", expanded=False):
-                generic_segment_peak = st.slider("Generika gesamt Peak Share (%)", 20, 70, 55, 5,
-                                                  help="Peak-Marktanteil aller Generika zusammen (inkl. meines)")
-                generic_segment_months = st.slider("Mon. bis Peak Share", 12, 48, 24, 3,
-                                                    help="Monate nach LOE bis das Generika-Segment seinen Peak erreicht")
 
             with st.expander("Kosten", expanded=False):
                 cogs_pct = st.slider("COGS (%)", 10, 50, 25, 5)
@@ -300,9 +306,10 @@ def show():
 
             params = GenericParams(
                 my_company_name=company_name,
+                apixaban_market_share=apixaban_share / 100,
                 launch_month_offset=launch_offset,
                 price_discount_vs_originator=price_discount / 100,
-                target_peak_share=target_peak / 100,
+                target_generic_share=target_peak / 100,
                 months_to_peak=months_to_peak,
                 generic_segment_peak_share=generic_segment_peak / 100,
                 generic_segment_months_to_peak=generic_segment_months,
