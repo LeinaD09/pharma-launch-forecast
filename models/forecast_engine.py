@@ -16,7 +16,7 @@ Core methodology:
 
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -103,34 +103,24 @@ class GenericParams:
     # Tender parameters
     tender_enabled: bool = True
     tender_start_month: int = 3           # Months after launch until first tender
-    my_tender_share: float = 0.33         # Mein Anteil bei Mehrfachvergabe (z.B. 1/3 bei 3 Partnern)
+    my_tender_share: float = 0.50         # Mein Anteil bei Mehrfachvergabe (z.B. 1/2 bei 2 Hauptpartnern)
 
-    # Individual Kasse tenders (name, covered_lives_mio, win_probability, volume_uplift)
+    # Individual Kasse tenders: "won" = deterministisch gewonnen (True/False)
     tender_kassen: list = None
 
     def __post_init__(self):
         if self.tender_kassen is None:
             self.tender_kassen = [
-                {"name": "TK", "lives_mio": 11.5, "gkv_share": 0.158,
-                 "win_prob": 0.50, "status": "Ziel"},
-                {"name": "BARMER", "lives_mio": 8.7, "gkv_share": 0.119,
-                 "win_prob": 0.40, "status": "Ziel"},
-                {"name": "DAK", "lives_mio": 5.5, "gkv_share": 0.075,
-                 "win_prob": 0.45, "status": "Ziel"},
-                {"name": "AOK Bayern", "lives_mio": 4.6, "gkv_share": 0.063,
-                 "win_prob": 0.30, "status": "Optional"},
-                {"name": "AOK BaWü", "lives_mio": 4.5, "gkv_share": 0.062,
-                 "win_prob": 0.30, "status": "Optional"},
-                {"name": "AOK Nordwest", "lives_mio": 3.0, "gkv_share": 0.041,
-                 "win_prob": 0.35, "status": "Optional"},
-                {"name": "AOK Rhld/Hbg", "lives_mio": 2.9, "gkv_share": 0.040,
-                 "win_prob": 0.35, "status": "Optional"},
-                {"name": "IKK classic", "lives_mio": 3.0, "gkv_share": 0.041,
-                 "win_prob": 0.25, "status": "Nachrangig"},
-                {"name": "KKH", "lives_mio": 1.5, "gkv_share": 0.021,
-                 "win_prob": 0.20, "status": "Nachrangig"},
-                {"name": "hkk", "lives_mio": 0.9, "gkv_share": 0.012,
-                 "win_prob": 0.20, "status": "Nachrangig"},
+                {"name": "TK", "gkv_share": 0.158, "won": True, "status": "Ziel"},
+                {"name": "BARMER", "gkv_share": 0.119, "won": True, "status": "Ziel"},
+                {"name": "DAK", "gkv_share": 0.075, "won": True, "status": "Ziel"},
+                {"name": "AOK Bayern", "gkv_share": 0.063, "won": False, "status": "Optional"},
+                {"name": "AOK BaWü", "gkv_share": 0.062, "won": False, "status": "Optional"},
+                {"name": "AOK Nordwest", "gkv_share": 0.041, "won": False, "status": "Optional"},
+                {"name": "AOK Rhld/Hbg", "gkv_share": 0.040, "won": False, "status": "Optional"},
+                {"name": "IKK classic", "gkv_share": 0.041, "won": False, "status": "Nachrangig"},
+                {"name": "KKH", "gkv_share": 0.021, "won": False, "status": "Nachrangig"},
+                {"name": "hkk", "gkv_share": 0.012, "won": False, "status": "Nachrangig"},
             ]
 
 
@@ -211,16 +201,17 @@ def _tender_share_of_volume(
     # Ramp up over 6 months as contracts are negotiated
     ramp = min(1.0, months_active / 6)
 
-    total_expected_gkv_share = 0.0
+    total_won_gkv_share = 0.0
     kasse_details = []
     for kasse in params.tender_kassen:
+        if not kasse.get("won", False):
+            continue
         if kasse["status"] == "Nachrangig" and months_active < 12:
             continue  # Lower priority Kassen join later
-        expected = kasse["gkv_share"] * kasse["win_prob"]
-        total_expected_gkv_share += expected
+        total_won_gkv_share += kasse["gkv_share"]
         kasse_details.append({
             "name": kasse["name"],
-            "expected_volume_share": expected,
+            "gkv_share": kasse["gkv_share"],
         })
 
     # Tender-Anteil meines Volumens:
@@ -235,7 +226,7 @@ def _tender_share_of_volume(
         params.aut_idem_full_months, params.aut_idem_quote_peak
     )
     aut_idem_exclusion = 1 - current_aut_idem_rate
-    brutto = total_expected_gkv_share * ramp
+    brutto = total_won_gkv_share * ramp
     tender_share = min(0.80,
         brutto
         * (1 - aut_idem_exclusion)
@@ -523,6 +514,33 @@ def forecast_generic(
 
     df = pd.DataFrame(rows)
     return df
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# SCENARIO BAND
+# ═══════════════════════════════════════════════════════════════════════
+
+def forecast_generic_scenario_band(
+    params: GenericParams,
+    forecast_months: int = 60,
+    loe_date: str = "2026-05-01",
+) -> dict:
+    """
+    Rechnet 3 Szenarien fuer das Tender-Risiko-Band:
+    - Base: User-Auswahl (deterministische Kassen-Checkboxen)
+    - Bull: Alle Kassen gewonnen
+    - Bear: Keine Tender
+    """
+    df_base = forecast_generic(params, forecast_months, loe_date)
+
+    bull_kassen = [{**k, "won": True} for k in params.tender_kassen]
+    bull_params = replace(params, tender_kassen=bull_kassen)
+    df_bull = forecast_generic(bull_params, forecast_months, loe_date)
+
+    bear_params = replace(params, tender_enabled=False)
+    df_bear = forecast_generic(bear_params, forecast_months, loe_date)
+
+    return {"base": df_base, "bull": df_bull, "bear": df_bear}
 
 
 # ═══════════════════════════════════════════════════════════════════════

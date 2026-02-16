@@ -15,6 +15,7 @@ Tests:
     T9: Erosion curve correctness (unit test)
     T10: Logistic curve correctness (unit test)
     T11: Tender boost correctness (unit test)
+    T25s: Scenario band (Bull/Base/Bear) correctness
 
   PART 2 - Consistency & Coherence
     T12: Originator share monotonically decreasing post-LOE
@@ -44,7 +45,7 @@ import ast
 
 from models.forecast_engine import (
     OriginatorParams, GenericParams,
-    forecast_originator, forecast_generic,
+    forecast_originator, forecast_generic, forecast_generic_scenario_band,
     calculate_kpis_originator, calculate_kpis_generic,
     _logistic_curve, _erosion_curve, _aut_idem_curve, _tender_share_of_volume,
 )
@@ -642,6 +643,54 @@ except ValueError as e:
     record("T24", "market_data.py ausfuehrbar", "FAIL", f"ValueError: {e}")
 except Exception as e:
     record("T24", "market_data.py ausfuehrbar", "FAIL", f"{type(e).__name__}: {e}")
+
+
+# --- T25s: Szenario-Band test ---
+try:
+    scenarios = forecast_generic_scenario_band(GenericParams(), forecast_months=60)
+    sb_ok = True
+    sb_details = []
+
+    # Bull >= Base >= Bear (total revenue)
+    rev_bull = scenarios["bull"]["my_revenue"].sum()
+    rev_base = scenarios["base"]["my_revenue"].sum()
+    rev_bear = scenarios["bear"]["my_revenue"].sum()
+
+    if rev_bull >= rev_base >= rev_bear:
+        record("T25s_a", "Szenario-Band: Bull >= Base >= Bear (Umsatz)", "PASS",
+               f"Bull={rev_bull:,.0f}, Base={rev_base:,.0f}, Bear={rev_bear:,.0f}")
+    else:
+        record("T25s_a", "Szenario-Band: Bull >= Base >= Bear (Umsatz)", "FAIL",
+               f"Bull={rev_bull:,.0f}, Base={rev_base:,.0f}, Bear={rev_bear:,.0f}")
+
+    # Bear should have 0 tender TRx (tender_enabled=False)
+    bear_tender = scenarios["bear"]["tender_trx"].sum()
+    if bear_tender == 0:
+        record("T25s_b", "Szenario-Band: Bear hat 0 Tender-TRx", "PASS")
+    else:
+        record("T25s_b", "Szenario-Band: Bear hat 0 Tender-TRx", "FAIL",
+               f"got {bear_tender:,.0f}")
+
+    # Bull should have more tender than base (all Kassen won)
+    bull_tender = scenarios["bull"]["tender_trx"].sum()
+    base_tender = scenarios["base"]["tender_trx"].sum()
+    if bull_tender >= base_tender:
+        record("T25s_c", "Szenario-Band: Bull Tender >= Base Tender", "PASS",
+               f"Bull={bull_tender:,.0f}, Base={base_tender:,.0f}")
+    else:
+        record("T25s_c", "Szenario-Band: Bull Tender >= Base Tender", "FAIL",
+               f"Bull={bull_tender:,.0f}, Base={base_tender:,.0f}")
+
+    # All 3 DataFrames should have same length
+    if len(scenarios["base"]) == len(scenarios["bull"]) == len(scenarios["bear"]) == 60:
+        record("T25s_d", "Szenario-Band: Alle 3 DFs gleich lang (60)", "PASS")
+    else:
+        record("T25s_d", "Szenario-Band: Alle 3 DFs gleich lang", "FAIL",
+               f"base={len(scenarios['base'])}, bull={len(scenarios['bull'])}, bear={len(scenarios['bear'])}")
+
+except Exception as e:
+    record("T25s", "Szenario-Band Test", "FAIL", f"{type(e).__name__}: {e}")
+    traceback.print_exc()
 
 
 # ═══════════════════════════════════════════════════════════════════════

@@ -74,9 +74,10 @@ Two perspectives with independent parameter sets:
 
 **Key model features:**
 - Decision cascade: Tender > Aut-idem > Organic (no double-counting)
-- Tender volume adjusted for **aut-idem exclusion** (derived from same substitution rate used for aut-idem channel) and **multi-award contracts** (3-4 partners per Kasse)
+- **Deterministic tender modeling:** Per-Kasse checkboxes (won/lost) instead of win probabilities. Tender volume adjusted for aut-idem exclusion (time-dependent, same curve as aut-idem channel) and multi-award contracts (default: 2 main partners, 50% share)
+- **Tender scenario band:** Bear (no tender) / Base (user selection) / Bull (all Kassen won) as transparent risk overlay on the volume chart
 - Aut-idem ramp curve tied to Festbetrag (reference pricing) timeline
-- Per-Kasse tender modeling (TK, BARMER, DAK, AOKs) with win probabilities and ramp
+- Per-Kasse tender modeling (TK, BARMER, DAK, AOKs) with deterministic won/lost and ramp
 - Volume decomposition: organic vs. aut-idem vs. tender
 - Originator price defense and authorized generic cannibalization
 - **Analogie-Leitplanken:** Benchmark validation against published generic penetration data (Fischer & Stargardt 2016, GaBi Journal, Bayer Q-reports, PMC) with +/-15pp tolerance bands

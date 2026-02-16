@@ -30,6 +30,7 @@ from models.forecast_engine import (
     GenericParams,
     forecast_originator,
     forecast_generic,
+    forecast_generic_scenario_band,
     calculate_kpis_originator,
     calculate_kpis_generic,
     validate_against_benchmarks,
@@ -267,35 +268,34 @@ def show():
                                              help="\u00a7130a SGB V")
                 if tender_enabled:
                     tender_start = st.slider("Start nach (Mon.)", 0, 12, 3, 1)
-                    st.caption("**Kassen \u2013 Win-Wahrscheinlichkeit:**")
+                    st.caption("**Kassen \u2014 Rabattvertrag gewonnen:**")
                     kassen_defaults = [
-                        ("TK", 11.5, 0.158, 50, "Ziel"),
-                        ("BARMER", 8.7, 0.119, 40, "Ziel"),
-                        ("DAK", 5.5, 0.075, 45, "Ziel"),
-                        ("AOK Bay", 4.6, 0.063, 30, "Optional"),
-                        ("AOK BW", 4.5, 0.062, 30, "Optional"),
+                        ("TK",      11.5, 0.158, True,  "Ziel"),
+                        ("BARMER",   8.7, 0.119, True,  "Ziel"),
+                        ("DAK",      5.5, 0.075, True,  "Ziel"),
+                        ("AOK Bay",  4.6, 0.063, False, "Optional"),
+                        ("AOK BW",   4.5, 0.062, False, "Optional"),
                     ]
                     tender_kassen = []
-                    for name, lives, gkv_share, default_prob, status in kassen_defaults:
-                        prob = st.slider(
-                            f"{name} ({lives}M)", 0, 80, default_prob, 5,
+                    for name, lives, gkv_share, default_won, status in kassen_defaults:
+                        won = st.checkbox(
+                            f"{name} ({lives}M Vers.)",
+                            value=default_won,
                             key=f"tender_{name}",
                         )
-                        if prob > 0:
-                            tender_kassen.append({
-                                "name": name, "lives_mio": lives,
-                                "gkv_share": gkv_share, "win_prob": prob / 100,
-                                "status": status,
-                            })
+                        tender_kassen.append({
+                            "name": name, "gkv_share": gkv_share,
+                            "won": won, "status": status,
+                        })
                     st.divider()
                     my_tender_share_pct = st.slider(
-                        "Mein Anteil im Rabattvertrag (%)", 20, 100, 33, 5,
-                        help="Mehrfachvergabe: z.B. 33% bei 3 Vertragspartnern",
+                        "Mein Anteil im Rabattvertrag (%)", 20, 100, 50, 5,
+                        help="Mehrfachvergabe: z.B. 50% bei 2 Hauptpartnern",
                     )
                 else:
                     tender_start = 3
                     tender_kassen = []
-                    my_tender_share_pct = 33
+                    my_tender_share_pct = 50
 
                 my_aut_idem_capture = 0.30
                 if aut_idem_enabled:
@@ -529,7 +529,12 @@ def show():
             unsafe_allow_html=True,
         )
 
-        df = forecast_generic(params, forecast_months=forecast_years * 12)
+        scenarios = forecast_generic_scenario_band(
+            params, forecast_months=forecast_years * 12,
+        )
+        df = scenarios["base"]
+        df_bull = scenarios["bull"]
+        df_bear = scenarios["bear"]
         kpis = calculate_kpis_generic(df)
 
         # ─── KPI Cards Row 1 ────────────────────────────────────────────
@@ -670,9 +675,32 @@ def show():
         col3, col4 = st.columns(2)
 
         with col3:
-            # Stacked area chart: Organic / Aut-idem / Tender
+            # Stacked area chart: Organic / Aut-idem / Tender + Tender-Szenario-Band
             fig_vol = go.Figure()
 
+            # ── Tender-Szenario-Band ──
+            # Shows range of tender volume: Bull (all Kassen) to Bear (no tender)
+            # Band sits on top of organic+aut_idem base
+            base_non_tender = df["organic_trx"] + df["aut_idem_trx"]
+            bull_upper = base_non_tender + df_bull["tender_trx"]
+            bear_lower = base_non_tender + df_bear["tender_trx"]  # Bear tender=0
+
+            fig_vol.add_trace(go.Scatter(
+                x=df["date"], y=bull_upper,
+                mode="lines", line=dict(width=0),
+                showlegend=False,
+                hoverinfo="skip",
+            ))
+            fig_vol.add_trace(go.Scatter(
+                x=df["date"], y=bear_lower,
+                mode="lines", line=dict(width=0),
+                fill="tonexty", fillcolor="rgba(245,158,11,0.12)",
+                name="Tender-Szenario-Band (Bear...Bull)",
+                hovertemplate="Bull: %{customdata[0]:,.0f} | Bear: %{customdata[1]:,.0f} Tender-TRx<extra></extra>",
+                customdata=list(zip(df_bull["tender_trx"], df_bear["tender_trx"])),
+            ))
+
+            # ── Stacked Area: Organic / Aut-idem / Tender (Base Case) ──
             fig_vol.add_trace(go.Scatter(
                 x=df["date"], y=df["organic_trx"],
                 mode="lines", name="Organisch",
@@ -693,7 +721,7 @@ def show():
 
             fig_vol.add_trace(go.Scatter(
                 x=df["date"], y=df["tender_trx"],
-                mode="lines", name="Tender/Rabattvertrag",
+                mode="lines", name="Tender/Rabattvertrag (Base)",
                 line=dict(width=0.5, color="#f59e0b"),
                 fill="tonexty", fillcolor="rgba(245,158,11,0.4)",
                 stackgroup="volume",
@@ -706,7 +734,7 @@ def show():
                                    showarrow=False, yanchor="bottom", font=dict(size=11, color="#6b7280"))
 
             fig_vol.update_layout(
-                title="Volumen-Zerlegung (TRx nach Quelle)",
+                title="Volumen-Zerlegung (TRx) + Tender-Szenario-Band",
                 yaxis_title="TRx / Monat",
                 xaxis_title="",
                 template="plotly_white",
@@ -746,6 +774,35 @@ def show():
                         "Abweichungen bei spezifischen Markt-/Produktsituationen "
                         "sind moeglich und erwartbar.*"
                     )
+
+        # ─── Tender-Szenario-Vergleich (3 Bars) ─────────────────────────
+        if tender_enabled:
+            bear_tender_trx = df_bear["tender_trx"].sum()
+            base_tender_trx = df["tender_trx"].sum()
+            bull_tender_trx = df_bull["tender_trx"].sum()
+            base_total_trx = df["my_trx"].sum()
+
+            bear_pct = bear_tender_trx / base_total_trx * 100 if base_total_trx > 0 else 0
+            base_pct = base_tender_trx / base_total_trx * 100 if base_total_trx > 0 else 0
+            bull_pct = bull_tender_trx / base_total_trx * 100 if base_total_trx > 0 else 0
+
+            fig_scen = go.Figure()
+            fig_scen.add_trace(go.Bar(
+                x=["Bear<br>(kein Tender)", "Base Case<br>(Auswahl)", "Bull<br>(alle Kassen)"],
+                y=[bear_tender_trx, base_tender_trx, bull_tender_trx],
+                marker_color=["#94a3b8", "#1e293b", "#3b82f6"],
+                text=[f"{bear_pct:.0f}%", f"{base_pct:.0f}%", f"{bull_pct:.0f}%"],
+                textposition="outside",
+                hovertemplate="%{x}: %{y:,.0f} TRx<extra></extra>",
+            ))
+            fig_scen.update_layout(
+                title=f"Tender-Szenario ({forecast_years}J kum. Tender-TRx)",
+                yaxis_title="Kum. Tender-TRx",
+                template="plotly_white",
+                height=300,
+                showlegend=False,
+            )
+            st.plotly_chart(fig_scen, width="stretch")
 
         with col4:
             # Profitability waterfall
@@ -916,7 +973,7 @@ def show():
 | Originator-Erosion | Exponentieller Decay: Share(t) = Floor + (Init-Floor) * e^(-k*t*speed) | Standard im Pharma-Forecasting; validiert durch Clopidogrel, Atorvastatin LOEs |
 | Generika-Uptake | Logistische S-Kurve: 1 / (1 + e^(-s*(t-m))) | Rogers Adoption Curve; Standard bei Launch-Forecasts |
 | Aut-idem-Substitution | Lineare Rampe: 0 -> Peak ueber [ramp, full] Monate | Abgeleitet aus G-BA Festbetrags-Timing + Apotheken-Substitutionsverhalten |
-| Tender/Rabattvertrag | Erwartungswert: Sum(Kasse_share * Win_prob) * Ramp | Kein binaeres Modell; gewichteter Durchschnitt ueber Kassen-Portfolio |
+| Tender/Rabattvertrag | Deterministisch: Kassen-Checkboxen (gewonnen/verloren) + Szenario-Band (Bear/Base/Bull) | Binaer pro Kasse; Risiko als Overlay statt Erwartungswert |
 | Preis-Erosion (Generika) | Zusaetzlicher Preisverfall: +0.3%/Monat, Max 15% | Beobachteter Trend in reifen Generika-Maerkten |
 | Authorized Generic (AG) | AG-Anteil: exp. Decay; AG-Discount: exp. Zunahme | Originator-Zweitmarke zur Verteidigung des Generika-Segments |
 | Competitive Ceiling | effective_peak = min(target_peak, segment_peak) | Peak-Share begrenzt durch Gesamtsegment |
@@ -933,7 +990,7 @@ def show():
 | Generika-Segment Peak | 55% | Vergleich Clopidogrel (Plavix): 60-70% nach 3 Jahren |
 | Aut-idem Peak-Quote | 75% | Abhaengig von Arzt-Akzeptanz und Festbetrag |
 | Festbetrag-Delay | 6 Monate | G-BA braucht 3-6 Monate fuer Festbetragsgruppe |
-| Mein Tender-Anteil | 33% | Mehrfachvergabe: typisch 3-4 Vertragspartner pro Kasse |
+| Mein Tender-Anteil | 50% | Mehrfachvergabe: typisch 2 Hauptpartner pro Kasse |
 | Generika Preis-Discount | 45% | Marktueblich DE: 30-60% fuer Generika |
 | COGS | 25% | Branchenueblich Small Molecule Generika |
 
