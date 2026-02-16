@@ -298,19 +298,20 @@ def show():
     st.markdown("---")
 
     # ===================================================================
-    # CHARTS
+    # CHARTS – 4 Tabs
     # ===================================================================
 
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "Patienten-Funnel", "Rx vs. OTC", "Stationaer vs. Online",
-        "Patienten-Zuwachs", "Profitabilitaet"
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "Patienten & Therapieluecke", "Rx vs. OTC",
+        "Kanal & Marke", "Profitabilitaet"
     ])
 
-    # --- Tab 1: Patient Funnel (NEW - unique to patient model) --------
+    # --- Tab 1: Patienten & Therapielücke (merged funnel + treatment gap)
     with tab1:
-        col_f1, col_f2 = st.columns(2)
+        # Row 1: Uptake + Herkunft
+        col_p1, col_p2 = st.columns(2)
 
-        with col_f1:
+        with col_p1:
             fig_funnel = go.Figure()
             fig_funnel.add_trace(go.Scatter(
                 x=df["month"], y=df["otc_patients_active"],
@@ -339,51 +340,92 @@ def show():
                 annotation_text=f"Adressierbarer Pool: {kpis['addressable_patients']:,.0f}",
             )
             fig_funnel.update_layout(
-                title="Patienten-Uptake (Anzahl aktive OTC-Kaeufer)",
+                title="Patienten-Uptake (aktive OTC-Kaeufer)",
                 xaxis_title="Monate nach Switch",
                 yaxis_title="Patienten",
-                yaxis_tickformat=",", height=450,
+                yaxis_tickformat=",", height=420,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
             st.plotly_chart(fig_funnel, width="stretch")
 
-        with col_f2:
-            fig_tabs = go.Figure()
-            fig_tabs.add_trace(go.Scatter(
-                x=df["month"], y=df["otc_tablets"],
-                name="OTC Tabletten", fill="tozeroy",
-                line=dict(color=TEAL, width=2.5),
-                fillcolor="rgba(13,148,136,0.1)",
+        with col_p2:
+            fig_herkunft = go.Figure()
+            fig_herkunft.add_trace(go.Scatter(
+                x=df["month"], y=df["otc_from_new_patients"],
+                name="Neue Patienten (nie Arzt)", stackgroup="one",
+                line=dict(color=GREEN),
             ))
-            fig_tabs.add_trace(go.Scatter(
-                x=df["month"], y=df["rx_tablets"],
-                name="Rx Tabletten",
-                line=dict(color=BLUE, width=2),
+            fig_herkunft.add_trace(go.Scatter(
+                x=df["month"], y=df["otc_from_rx_migration"],
+                name="Rx-Migration (Sildenafil)", stackgroup="one",
+                line=dict(color=BLUE),
             ))
-            fig_tabs.add_hline(
-                y=kpis["otc_peak_computed"], line_dash="dash",
-                line_color=TEAL,
-                annotation_text=f"Berechneter Peak: {kpis['otc_peak_computed']:,.0f}",
-            )
-            fig_tabs.update_layout(
-                title="Tabletten-Volumen (abgeleitet aus Patienten)",
-                xaxis_title="Monate nach Switch",
-                yaxis_title="Tabletten/Monat",
-                yaxis_tickformat=",", height=450,
+            fig_herkunft.add_trace(go.Scatter(
+                x=df["month"], y=df["otc_from_tadalafil"],
+                name="Tadalafil-Migration", stackgroup="one",
+                line=dict(color=PURPLE),
+            ))
+            fig_herkunft.update_layout(
+                title="OTC-Volumen Herkunft (Tabletten)",
+                xaxis_title="Monate nach Switch", yaxis_title="Tabletten/Monat",
+                yaxis_tickformat=",", height=420,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
-            st.plotly_chart(fig_tabs, width="stretch")
+            st.plotly_chart(fig_herkunft, width="stretch")
 
-        # Patient funnel summary
-        st.markdown("#### Patienten-Funnel Zusammenfassung")
+        # Row 2: Treatment Gap + Therapiequote
+        treated_monthly = df["treatment_rate_effective"] * params.ed_prevalence_men
+        untreated_monthly = params.ed_prevalence_men - treated_monthly
+
+        col_tg1, col_tg2 = st.columns(2)
+
+        with col_tg1:
+            fig_tg_abs = go.Figure()
+            fig_tg_abs.add_trace(go.Bar(
+                x=df["month"], y=treated_monthly,
+                name="Behandelt", marker_color=GREEN,
+            ))
+            fig_tg_abs.add_trace(go.Bar(
+                x=df["month"], y=untreated_monthly,
+                name="Unbehandelt", marker_color="#e5e7eb",
+            ))
+            fig_tg_abs.update_layout(
+                barmode="stack",
+                title="ED-Patienten: Behandelt vs. Unbehandelt",
+                xaxis_title="Monate nach Switch", yaxis_title="Maenner",
+                yaxis_tickformat=",", height=380,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            )
+            st.plotly_chart(fig_tg_abs, width="stretch")
+
+        with col_tg2:
+            fig_tg_rate = go.Figure()
+            fig_tg_rate.add_trace(go.Scatter(
+                x=df["month"], y=df["treatment_rate_effective"],
+                name="Therapiequote",
+                line=dict(color=GREEN, width=3),
+                fill="tozeroy", fillcolor="rgba(39,174,96,0.1)",
+            ))
+            fig_tg_rate.add_hline(y=params.treatment_rate, line_dash="dash",
+                                  line_color="#999",
+                                  annotation_text=f"Vor Switch ({params.treatment_rate:.0%})")
+            fig_tg_rate.update_layout(
+                title="Therapiequote ueber Zeit",
+                xaxis_title="Monate nach Switch", yaxis_title="Therapiequote",
+                yaxis_tickformat=".0%", height=380,
+            )
+            st.plotly_chart(fig_tg_rate, width="stretch")
+
+        # Funnel summary table
+        st.markdown("#### Patienten-Funnel")
         funnel_data = {
             "Stufe": [
                 "ED-Praevalenz (Maenner DE)",
                 "Aktuell behandelt",
                 "Unbehandelt (Treatment Gap)",
                 "Adressierbarer OTC-Pool",
-                f"OTC Patienten M12",
-                f"OTC Patienten M60 (Peak)",
+                "OTC Patienten M12",
+                "OTC Patienten M60 (Peak)",
             ],
             "Patienten": [
                 f"{params.ed_prevalence_men:,.0f}",
@@ -404,166 +446,6 @@ def show():
         }
         st.dataframe(pd.DataFrame(funnel_data), hide_index=True, width=700)
 
-    # --- Tab 2: Rx vs OTC (tablets + revenue) -------------------------
-    with tab2:
-        fig1 = go.Figure()
-        fig1.add_trace(go.Scatter(
-            x=df["month"], y=df["rx_tablets"], name="Rx Tabletten",
-            line=dict(color=BLUE, width=2.5),
-        ))
-        fig1.add_trace(go.Scatter(
-            x=df["month"], y=df["otc_tablets"], name="OTC Tabletten",
-            line=dict(color=TEAL, width=2.5),
-        ))
-        fig1.update_layout(
-            title="Rx vs. OTC Tabletten",
-            xaxis_title="Monate", yaxis_title="Tabletten/Monat",
-            yaxis_tickformat=",", height=400,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        )
-        st.plotly_chart(fig1, width="stretch")
-
-        fig1b = go.Figure()
-        fig1b.add_trace(go.Scatter(
-            x=df["month"], y=df["rx_revenue"], name="Rx Umsatz",
-            line=dict(color=BLUE, width=2),
-        ))
-        fig1b.add_trace(go.Scatter(
-            x=df["month"], y=df["otc_manufacturer_revenue"],
-            name="OTC Umsatz (Hersteller)",
-            line=dict(color=TEAL, width=2),
-        ))
-        fig1b.update_layout(
-            title="Rx vs. OTC Umsatz (monatlich)",
-            xaxis_title="Monate", yaxis_title="EUR",
-            height=400,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        )
-        st.plotly_chart(fig1b, width="stretch")
-
-    # --- Tab 3: Channels ----------------------------------------------
-    with tab3:
-        fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(
-            x=df["month"], y=df["ch_apotheke_tablets"],
-            name="Stationaere Apotheke", stackgroup="one",
-            line=dict(color=BLUE),
-        ))
-        fig2.add_trace(go.Scatter(
-            x=df["month"], y=df["ch_online_tablets"],
-            name="Online-Apotheke", stackgroup="one",
-            line=dict(color=PURPLE),
-        ))
-        fig2.update_layout(
-            title="OTC-Volumen nach Kanal",
-            xaxis_title="Monate", yaxis_title="Tabletten",
-            yaxis_tickformat=",", height=400,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        )
-        st.plotly_chart(fig2, width="stretch")
-
-        col_ch1, col_ch2 = st.columns(2)
-        with col_ch1:
-            fig2b = go.Figure()
-            fig2b.add_trace(go.Scatter(
-                x=df["month"], y=df["ch_apotheke_share"],
-                name="Stationaer", line=dict(color=BLUE, width=2),
-            ))
-            fig2b.add_trace(go.Scatter(
-                x=df["month"], y=df["ch_online_share"],
-                name="Online", line=dict(color=PURPLE, width=2),
-            ))
-            fig2b.update_layout(
-                title="Kanal-Anteile",
-                xaxis_title="Monate", yaxis_title="Anteil",
-                yaxis_tickformat=".0%", height=350,
-            )
-            st.plotly_chart(fig2b, width="stretch")
-
-        with col_ch2:
-            fig_brand = go.Figure()
-            fig_brand.add_trace(go.Scatter(
-                x=df["month"], y=df["otc_brand_share"],
-                name="Viagra Connect", line=dict(color=PINK, width=2.5),
-                fill="tozeroy", fillcolor="rgba(219,39,119,0.08)",
-            ))
-            fig_brand.update_layout(
-                title="Viagra Markenanteil-Erosion",
-                xaxis_title="Monate", yaxis_title="Anteil",
-                yaxis_tickformat=".0%", height=350,
-                yaxis_range=[0, 0.7],
-            )
-            st.plotly_chart(fig_brand, width="stretch")
-
-    # --- Tab 4: Patienten-Zuwachs (Treatment Gap) ---------------------
-    with tab4:
-        # Volume decomposition
-        fig3c = go.Figure()
-        fig3c.add_trace(go.Scatter(
-            x=df["month"], y=df["otc_from_new_patients"],
-            name="Neue Patienten (nie Arzt)", stackgroup="one",
-            line=dict(color=GREEN),
-        ))
-        fig3c.add_trace(go.Scatter(
-            x=df["month"], y=df["otc_from_rx_migration"],
-            name="Rx-Migration (Sildenafil)", stackgroup="one",
-            line=dict(color=BLUE),
-        ))
-        fig3c.add_trace(go.Scatter(
-            x=df["month"], y=df["otc_from_tadalafil"],
-            name="Tadalafil-Migration", stackgroup="one",
-            line=dict(color=PURPLE),
-        ))
-        fig3c.update_layout(
-            title="OTC-Volumen Herkunft (Woher kommen die Patienten?)",
-            xaxis_title="Monate", yaxis_title="Tabletten",
-            yaxis_tickformat=",", height=400,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        )
-        st.plotly_chart(fig3c, width="stretch")
-
-        treated_monthly = df["treatment_rate_effective"] * params.ed_prevalence_men
-        untreated_monthly = params.ed_prevalence_men - treated_monthly
-
-        col_tg1, col_tg2 = st.columns(2)
-
-        with col_tg1:
-            fig_tg_abs = go.Figure()
-            fig_tg_abs.add_trace(go.Bar(
-                x=df["month"], y=treated_monthly,
-                name="Behandelt", marker_color=GREEN,
-            ))
-            fig_tg_abs.add_trace(go.Bar(
-                x=df["month"], y=untreated_monthly,
-                name="Unbehandelt", marker_color="#e5e7eb",
-            ))
-            fig_tg_abs.update_layout(
-                barmode="stack",
-                title="ED-Patienten: Behandelt vs. Unbehandelt",
-                xaxis_title="Monate nach Switch", yaxis_title="Maenner",
-                yaxis_tickformat=",", height=420,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02),
-            )
-            st.plotly_chart(fig_tg_abs, width="stretch")
-
-        with col_tg2:
-            fig_tg_rate = go.Figure()
-            fig_tg_rate.add_trace(go.Scatter(
-                x=df["month"], y=df["treatment_rate_effective"],
-                name="Therapiequote",
-                line=dict(color=GREEN, width=3),
-                fill="tozeroy", fillcolor="rgba(39,174,96,0.1)",
-            ))
-            fig_tg_rate.add_hline(y=params.treatment_rate, line_dash="dash",
-                                  line_color="#999",
-                                  annotation_text=f"Vor Switch ({params.treatment_rate:.0%})")
-            fig_tg_rate.update_layout(
-                title="Therapiequote ueber Zeit (aus Patientenmodell)",
-                xaxis_title="Monate nach Switch", yaxis_title="Therapiequote",
-                yaxis_tickformat=".0%", height=420,
-            )
-            st.plotly_chart(fig_tg_rate, width="stretch")
-
         st.info(
             "**Konsistenz-Check:** Die Therapiequote wird aus den tatsaechlichen "
             "OTC-Neupatienten abgeleitet (kumulierte Tabletten neue Patienten / "
@@ -573,39 +455,188 @@ def show():
             f"auf {kpis['treatment_rate_final']:.0%}."
         )
 
-    # --- Tab 5: Profitability -----------------------------------------
-    with tab5:
-        fig6 = go.Figure()
-        fig6.add_trace(go.Scatter(
+    # --- Tab 2: Rx vs. OTC (with crossover markers) -------------------
+    with tab2:
+        fig_rx = go.Figure()
+        fig_rx.add_trace(go.Scatter(
+            x=df["month"], y=df["rx_tablets"], name="Rx Tabletten",
+            line=dict(color=BLUE, width=2.5),
+        ))
+        fig_rx.add_trace(go.Scatter(
+            x=df["month"], y=df["otc_tablets"], name="OTC Tabletten",
+            line=dict(color=TEAL, width=2.5),
+        ))
+        if co_tabs:
+            fig_rx.add_vline(x=co_tabs, line_dash="dot", line_color=AMBER,
+                             annotation_text=f"OTC > Rx (M{co_tabs})")
+        fig_rx.add_hline(
+            y=kpis["otc_peak_computed"], line_dash="dash", line_color=TEAL,
+            annotation_text=f"Berechneter Peak: {kpis['otc_peak_computed']:,.0f}",
+        )
+        fig_rx.update_layout(
+            title="Rx vs. OTC Tabletten/Monat",
+            xaxis_title="Monate nach Switch", yaxis_title="Tabletten",
+            yaxis_tickformat=",", height=420,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        )
+        st.plotly_chart(fig_rx, width="stretch")
+
+        fig_rev = go.Figure()
+        fig_rev.add_trace(go.Bar(
+            x=df["month"], y=df["rx_revenue"], name="Rx Umsatz",
+            marker_color="#93c5fd",
+        ))
+        fig_rev.add_trace(go.Bar(
+            x=df["month"], y=df["otc_manufacturer_revenue"],
+            name="OTC Umsatz (Hersteller)", marker_color="#5eead4",
+        ))
+        if co_rev:
+            fig_rev.add_vline(x=co_rev, line_dash="dot", line_color=AMBER,
+                              annotation_text=f"OTC > Rx (M{co_rev})")
+        fig_rev.update_layout(
+            barmode="stack",
+            title="Rx vs. OTC Umsatz/Monat",
+            xaxis_title="Monate nach Switch", yaxis_title="EUR",
+            height=380,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        )
+        st.plotly_chart(fig_rev, width="stretch")
+
+    # --- Tab 3: Kanal & Marke (2×2 layout) ----------------------------
+    with tab3:
+        col_km1, col_km2 = st.columns(2)
+
+        # Top-left: Channel volume (stacked area)
+        with col_km1:
+            fig_ch_vol = go.Figure()
+            fig_ch_vol.add_trace(go.Scatter(
+                x=df["month"], y=df["ch_apotheke_tablets"],
+                name="Stationaere Apotheke", stackgroup="one",
+                line=dict(color=BLUE),
+            ))
+            fig_ch_vol.add_trace(go.Scatter(
+                x=df["month"], y=df["ch_online_tablets"],
+                name="Online-Apotheke", stackgroup="one",
+                line=dict(color=TEAL),
+            ))
+            fig_ch_vol.update_layout(
+                title="OTC-Volumen nach Kanal",
+                xaxis_title="Monate", yaxis_title="Tabletten",
+                yaxis_tickformat=",", height=380,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            )
+            st.plotly_chart(fig_ch_vol, width="stretch")
+
+        # Top-right: Channel share (lines)
+        with col_km2:
+            fig_ch_share = go.Figure()
+            fig_ch_share.add_trace(go.Scatter(
+                x=df["month"], y=df["ch_apotheke_share"],
+                name="Stationaer", line=dict(color=BLUE, width=2),
+            ))
+            fig_ch_share.add_trace(go.Scatter(
+                x=df["month"], y=df["ch_online_share"],
+                name="Online", line=dict(color=TEAL, width=2),
+            ))
+            fig_ch_share.update_layout(
+                title="Kanal-Anteile",
+                xaxis_title="Monate", yaxis_title="Anteil",
+                yaxis_tickformat=".0%", height=380,
+            )
+            st.plotly_chart(fig_ch_share, width="stretch")
+
+        col_km3, col_km4 = st.columns(2)
+
+        # Bottom-left: Brand vs Generic volume (stacked area)
+        with col_km3:
+            fig_bg_vol = go.Figure()
+            fig_bg_vol.add_trace(go.Scatter(
+                x=df["month"], y=df["otc_brand_tablets"],
+                name="Viagra Connect (Marke)", stackgroup="one",
+                line=dict(color="#1e40af"),
+            ))
+            fig_bg_vol.add_trace(go.Scatter(
+                x=df["month"], y=df["otc_generic_tablets"],
+                name="Generika OTC", stackgroup="one",
+                line=dict(color="#94a3b8"),
+            ))
+            fig_bg_vol.update_layout(
+                title="OTC-Volumen: Marke vs. Generika",
+                xaxis_title="Monate", yaxis_title="Tabletten",
+                yaxis_tickformat=",", height=380,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            )
+            st.plotly_chart(fig_bg_vol, width="stretch")
+
+        # Bottom-right: Brand erosion (fill line)
+        with col_km4:
+            fig_brand = go.Figure()
+            fig_brand.add_trace(go.Scatter(
+                x=df["month"], y=df["otc_brand_share"],
+                name="Viagra Connect Anteil",
+                line=dict(color=PINK, width=3),
+                fill="tozeroy", fillcolor="rgba(219,39,119,0.08)",
+            ))
+            fig_brand.update_layout(
+                title="Viagra Markenanteil-Erosion",
+                xaxis_title="Monate", yaxis_title="Anteil",
+                yaxis_tickformat=".0%", height=380,
+                yaxis_range=[0, 0.7],
+            )
+            st.plotly_chart(fig_brand, width="stretch")
+
+        # Channel revenue (full width)
+        fig_ch_rev = go.Figure()
+        fig_ch_rev.add_trace(go.Bar(
+            x=df["month"], y=df["ch_apotheke_revenue"],
+            name="Apotheke", marker_color=BLUE,
+        ))
+        fig_ch_rev.add_trace(go.Bar(
+            x=df["month"], y=df["ch_online_revenue"],
+            name="Online", marker_color=TEAL,
+        ))
+        fig_ch_rev.update_layout(
+            barmode="stack",
+            title="OTC-Herstellerumsatz nach Kanal",
+            xaxis_title="Monate", yaxis_title="EUR",
+            height=350,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        )
+        st.plotly_chart(fig_ch_rev, width="stretch")
+
+    # --- Tab 4: Profitabilität ----------------------------------------
+    with tab4:
+        fig_cum = go.Figure()
+        fig_cum.add_trace(go.Scatter(
             x=df["month"], y=df["cumulative_total_revenue"],
             name="Kum. Umsatz", line=dict(color=BLUE, width=2.5),
         ))
-        fig6.add_trace(go.Scatter(
+        fig_cum.add_trace(go.Scatter(
             x=df["month"], y=df["cumulative_profit"],
             name="Kum. Gewinn", line=dict(color=GREEN, width=2.5),
         ))
-        fig6.add_trace(go.Scatter(
+        fig_cum.add_trace(go.Scatter(
             x=df["month"], y=df["cumulative_marketing"],
             name="Kum. Marketing", line=dict(color=RED, width=1.5, dash="dot"),
         ))
-        fig6.update_layout(
+        fig_cum.update_layout(
             title="Kumulierter Umsatz, Gewinn & Marketing-Invest",
             xaxis_title="Monate", yaxis_title="EUR", height=420,
             legend=dict(orientation="h", yanchor="bottom", y=1.02),
         )
-        st.plotly_chart(fig6, width="stretch")
+        st.plotly_chart(fig_cum, width="stretch")
 
-        fig6b = go.Figure()
-        fig6b.add_trace(go.Bar(
+        fig_profit = go.Figure()
+        fig_profit.add_trace(go.Bar(
             x=df["month"], y=df["operating_profit"],
             name="Operativer Gewinn",
             marker_color=[GREEN if v >= 0 else RED for v in df["operating_profit"]],
         ))
-        fig6b.update_layout(
+        fig_profit.update_layout(
             title="Monatlicher operativer Gewinn",
             xaxis_title="Monate", yaxis_title="EUR", height=380,
         )
-        st.plotly_chart(fig6b, width="stretch")
+        st.plotly_chart(fig_profit, width="stretch")
 
     # ===================================================================
     # SCENARIO COMPARISON
