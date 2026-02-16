@@ -50,6 +50,13 @@ def show():
             box-shadow: 0 1px 3px rgba(0,0,0,0.06);
             flex: 1; min-width: 0;
         }
+        .kpi-title {
+            background: #f1f5f9; border: 1px solid #e2e8f0;
+            border-radius: 8px; padding: 10px 12px;
+            text-align: left; flex: 0 0 140px; min-width: 140px;
+            display: flex; align-items: center;
+        }
+        .kpi-title-text { font-size: 12px; font-weight: 700; color: #475569; line-height: 1.3; }
         .kpi-value { font-size: 18px; font-weight: 700; margin: 2px 0; line-height: 1.2; color: #0f172a; }
         .kpi-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
         .kpi-sublabel { font-size: 9px; color: #94a3b8; margin-top: 1px; }
@@ -194,7 +201,7 @@ def show():
                 unsafe_allow_html=True)
 
     # ===================================================================
-    # KPI CARDS (Row 1 + 2) — rendered as pure HTML flexbox
+    # KPI CARDS (3 rows with title cards) — rendered as pure HTML flexbox
     # ===================================================================
     co_rev = kpis.get("crossover_month")
     co_tabs = kpis.get("crossover_month_tablets")
@@ -202,8 +209,11 @@ def show():
         f"Monat {co_rev}" if co_rev else "–"
     )
 
+    be_text = f"M{kpis['breakeven_month']}" if kpis.get('breakeven_month') else "–"
+
     st.markdown(f"""
     <div class="kpi-row">
+        <div class="kpi-title"><div class="kpi-title-text">Was bringt<br>der Switch?</div></div>
         <div class="kpi-card-teal">
             <div class="kpi-label">OTC Umsatz M12</div>
             <div class="kpi-value">EUR {kpis['year1_otc_revenue']/1e6:.1f}M</div>
@@ -226,6 +236,7 @@ def show():
         </div>
     </div>
     <div class="kpi-row">
+        <div class="kpi-title"><div class="kpi-title-text">Wie verteilt sich<br>der Markt?</div></div>
         <div class="kpi-card-purple">
             <div class="kpi-label">Online-Anteil M12</div>
             <div class="kpi-value">{kpis['online_share_m12']:.0%}</div>
@@ -237,14 +248,37 @@ def show():
             <div class="kpi-sublabel">Viagra vs. Generika</div>
         </div>
         <div class="kpi-card-red">
-            <div class="kpi-label">Rx-Rückgang</div>
+            <div class="kpi-label">Rx-Rueckgang</div>
             <div class="kpi-value">{kpis['rx_decline_total']:.0%}</div>
-            <div class="kpi-sublabel">über 5 Jahre</div>
+            <div class="kpi-sublabel">ueber 5 Jahre</div>
         </div>
         <div class="kpi-card-green">
-            <div class="kpi-label">Therapiequote ED 5J</div>
+            <div class="kpi-label">Therapiequote 5J</div>
             <div class="kpi-value">{kpis['treatment_rate_final']:.0%}</div>
             <div class="kpi-sublabel">vorher: 30%</div>
+        </div>
+    </div>
+    <div class="kpi-row">
+        <div class="kpi-title"><div class="kpi-title-text">Lohnt es<br>sich?</div></div>
+        <div class="kpi-card-green">
+            <div class="kpi-label">Breakeven</div>
+            <div class="kpi-value">{be_text}</div>
+            <div class="kpi-sublabel">Kum. Gewinn > 0</div>
+        </div>
+        <div class="kpi-card-teal">
+            <div class="kpi-label">Marketing-ROI</div>
+            <div class="kpi-value">{kpis['marketing_roi']:.1f}x</div>
+            <div class="kpi-sublabel">Gewinn / Marketing</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Marketing 5J</div>
+            <div class="kpi-value">EUR {kpis['total_5y_marketing']/1e6:.0f}M</div>
+            <div class="kpi-sublabel">kumuliert</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Umsatz 5J</div>
+            <div class="kpi-value">EUR {kpis['total_5y_revenue']/1e6:.0f}M</div>
+            <div class="kpi-sublabel">Rx + OTC kumuliert</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
