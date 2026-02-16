@@ -32,6 +32,7 @@ from models.forecast_engine import (
     forecast_generic,
     calculate_kpis_originator,
     calculate_kpis_generic,
+    validate_against_benchmarks,
 )
 
 def show():
@@ -332,7 +333,7 @@ def show():
         # ═══════════════════════════════════════════════════════════════════
         st.markdown(
             '<div class="perspective-header originator-header">'
-            '\U0001f3e2 Perspektive: Original-Anbieter \u2013 Revenue at Risk'
+            '\U0001f3e2 Modell 1: Perspektive: Original-Anbieter \u2013 Revenue at Risk'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -512,7 +513,7 @@ def show():
         # ═══════════════════════════════════════════════════════════════════
         st.markdown(
             '<div class="perspective-header generic-header">'
-            '\U0001f48a Perspektive: Generika-Anbieter \u2013 Market Opportunity'
+            '\U0001f48a Modell 2: Perspektive: Generika-Anbieter \u2013 Market Opportunity'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -704,6 +705,37 @@ def show():
             )
             st.plotly_chart(fig_vol, width="stretch")
 
+            # ─── Analogie-Leitplanken (Plausibilitäts-Check) ──────────
+            benchmark_results = validate_against_benchmarks(
+                df, params.generic_segment_peak_share
+            )
+            if benchmark_results:
+                with st.expander("Analogie-Leitplanken (Plausibilitaets-Check)", expanded=False):
+                    st.caption(
+                        "Vergleich der prognostizierten Generika-Penetration mit "
+                        "historischen Benchmarks aus oeffentlichen Quellen. "
+                        "Die Leitplanken zeigen, ob die Prognose im plausiblen "
+                        "Bereich liegt (Toleranz: +/-15 Prozentpunkte)."
+                    )
+                    for r in benchmark_results:
+                        icon = "\u2705" if r["status"] == "OK" else "\u26a0\ufe0f"
+                        direction = "ueber" if r["deviation"] > 0 else "unter"
+                        st.markdown(
+                            f"{icon} **Monat {r['months']} post-LOE**: "
+                            f"Prognose **{r['actual']:.0%}** vs. "
+                            f"Benchmark **{r['expected']:.0%}** "
+                            f"({abs(r['deviation']):.0%} {direction} Benchmark)  \n"
+                            f"&nbsp;&nbsp;&nbsp;&nbsp;*{r['source']}*"
+                        )
+                    st.caption(
+                        "*Quellen: Fischer & Stargardt 2016 (Eur J Health Econ); "
+                        "GaBi Journal (Clopidogrel); Bayer Quartalsberichte "
+                        "2024/25 (Xarelto); PMC (Humira Biosimilar). "
+                        "Leitplanken sind Plausibilitaets-Checks, keine Prognosen. "
+                        "Abweichungen bei spezifischen Markt-/Produktsituationen "
+                        "sind moeglich und erwartbar.*"
+                    )
+
         with col4:
             # Profitability waterfall
             fig3 = go.Figure()
@@ -892,6 +924,18 @@ def show():
 | Festbetrag-Delay | 6 Monate | G-BA braucht 3-6 Monate fuer Festbetragsgruppe |
 | Generika Preis-Discount | 45% | Marktueblich DE: 30-60% fuer Generika |
 | COGS | 25% | Branchenueblich Small Molecule Generika |
+
+**Analogie-Leitplanken (Plausibilitaets-Check):**
+
+Das Modell prueft die prognostizierte Generika-Penetration gegen historische Benchmarks aus oeffentlichen Quellen. Abweichungen ueber +/-15 Prozentpunkte werden als Warnung angezeigt.
+
+| Zeitpunkt | Benchmark | Toleranz | Quelle |
+|---|---|---|---|
+| 5 Monate post-LOE | ~25% Generika-Share | +/-15 PP | Clopidogrel DE (GaBi Journal) |
+| 12 Monate post-LOE | ~45% Generika-Share | +/-15 PP | Humira Biosimilar DE (PMC), Xarelto (Bayer Q1 2025) |
+| 48 Monate post-LOE | ~75% Generika-Share | +/-15 PP | Fischer & Stargardt 2016, 65 Molekuele DE |
+
+*Hinweis: Leitplanken basieren auf oeffentlich verfuegbaren historischen Daten. Sie sind KEINE Prognosen, sondern Plausibilitaets-Checks. Abweichungen sind bei spezifischen Markt- und Produktsituationen moeglich und erwartbar. Die 12-Monats-Benchmark kombiniert Biosimilar- und Small-Molecule-Daten und ist daher als Orientierung zu verstehen.*
 
 **Regulatorischer Rahmen:**
 - **Aut-idem (SGB V Par.129):** Apotheke darf/muss wirkstoffgleiches Generikum abgeben, sofern Arzt nicht aut-idem ausschliesst

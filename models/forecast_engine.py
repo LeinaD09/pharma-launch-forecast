@@ -20,6 +20,22 @@ from dataclasses import dataclass, field
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# ANALOGIE-LEITPLANKEN (öffentlich belegte Benchmarks)
+# ═══════════════════════════════════════════════════════════════════════
+# Historische Generika-Penetrationsdaten aus öffentlichen Quellen.
+# Verwendet als Plausibilitäts-Check, NICHT als Kalibrierungsziel.
+# Toleranzband: ±15 Prozentpunkte um den Benchmark-Wert.
+GENERIC_PENETRATION_BENCHMARKS = [
+    {"months_post_loe": 5,  "expected_share": 0.25, "tolerance": 0.15,
+     "source": "Clopidogrel DE (GaBi Journal)"},
+    {"months_post_loe": 12, "expected_share": 0.45, "tolerance": 0.15,
+     "source": "Humira Biosimilar DE (PMC), Xarelto (Bayer Q1 2025)"},
+    {"months_post_loe": 48, "expected_share": 0.75, "tolerance": 0.15,
+     "source": "Fischer & Stargardt 2016, 65 Molekuele DE"},
+]
+
+
+# ═══════════════════════════════════════════════════════════════════════
 # PARAMETER CLASSES
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -168,49 +184,47 @@ def _aut_idem_curve(
         return peak_quote
 
 
-def _tender_volume_boost(
+def _tender_share_of_volume(
     t: int,
     params: GenericParams,
 ) -> tuple[float, dict]:
     """
-    Calculate expected volume boost from GKV Rabattverträge.
+    Anteil meines Gesamtvolumens, der durch Rabattverträge (§130a SGB V) gedeckt ist.
+
+    Decision cascade: Tender hat Vorrang vor aut-idem und organic.
+    Wenn eine Kasse einen Rabattvertrag hat, MUSS die Apotheke liefern.
 
     Returns:
-        (boost_factor, details_dict)
-
-    Logic:
-    - Each Kasse has a GKV market share (% of total insured)
-    - Win probability × GKV share = expected volume contribution
-    - Sum across all Kassen = total expected boost
-    - Ramp-up after tender_start_month
+        (tender_share, details_dict)
+        tender_share: 0.0–0.80 — Anteil meines Volumens aus Tendern
     """
     if not params.tender_enabled or t < params.tender_start_month:
-        return 1.0, {"tender_active": False, "expected_uplift": 0}
+        return 0.0, {"tender_active": False, "tender_share": 0}
 
     months_active = t - params.tender_start_month
     # Ramp up over 6 months as contracts are negotiated
     ramp = min(1.0, months_active / 6)
 
-    total_expected_share = 0.0
+    total_expected_gkv_share = 0.0
     kasse_details = []
     for kasse in params.tender_kassen:
         if kasse["status"] == "Nachrangig" and months_active < 12:
             continue  # Lower priority Kassen join later
         expected = kasse["gkv_share"] * kasse["win_prob"]
-        total_expected_share += expected
+        total_expected_gkv_share += expected
         kasse_details.append({
             "name": kasse["name"],
             "expected_volume_share": expected,
         })
 
-    # Tender boost: if we win e.g. 20% of GKV market through tenders,
-    # those patients MUST get our product (exclusive contract)
-    # This adds on top of organic share
-    boost = 1.0 + total_expected_share * ramp * 2.5  # 2.5x multiplier for exclusivity effect
+    # Tender-Anteil meines Volumens:
+    # Gewonnene Kassen decken diesen Anteil des GKV-Marktes ab.
+    # Cap bei 0.80 — PKV, Krankenhäuser, Selbstzahler haben keine Tender.
+    tender_share = min(0.80, total_expected_gkv_share * ramp)
 
-    return boost, {
+    return tender_share, {
         "tender_active": True,
-        "expected_uplift": total_expected_share * ramp,
+        "tender_share_of_volume": round(tender_share, 4),
         "kasse_count": len(kasse_details),
     }
 
@@ -383,7 +397,6 @@ def forecast_generic(
             my_revenue = 0
             aut_idem_rate = 0.0
             aut_idem_trx = 0
-            tender_boost = 1.0
             tender_trx = 0
             organic_trx = 0
             total_generic_share = float(_logistic_curve(
@@ -393,40 +406,41 @@ def forecast_generic(
         else:
             t = months_since_launch
 
-            # === ORGANIC UPTAKE (base S-curve) ===
+            # ══════════════════════════════════════════════════
+            # STEP 1: Gesamtvolumen über S-Curve bestimmen
+            # ══════════════════════════════════════════════════
             midpoint = params.months_to_peak / 2
             steepness = 4.0 / params.months_to_peak * 1.5
             uptake = float(_logistic_curve(np.array([t]), midpoint, steepness)[0])
 
-            # Organic share: target_peak_share represents the user's estimate
-            # of achievable peak market share (already accounts for competition).
-            # Cap at segment peak to ensure consistency.
             effective_peak = min(params.target_peak_share, params.generic_segment_peak_share)
-            organic_share = effective_peak * uptake * 0.5  # 50% from organic
-            organic_trx = int(total_market_trx * organic_share)
+            my_share = effective_peak * uptake
+            my_trx = int(total_market_trx * my_share)
 
-            # === AUT-IDEM COMPONENT ===
+            # ══════════════════════════════════════════════════
+            # STEP 2: Decision Cascade – Zuordnung auf Kanäle
+            # Priorität: Tender > Aut-idem > Organic
+            # ══════════════════════════════════════════════════
+
+            # --- Tender (höchste Priorität) ---
+            # Kasse hat Rabattvertrag → Apotheke MUSS liefern
+            tender_pct, tender_details = _tender_share_of_volume(t, params)
+            tender_trx = int(my_trx * tender_pct)
+
+            # --- Aut-idem (zweite Priorität, nur Nicht-Tender-Rest) ---
+            remaining_after_tender = my_trx - tender_trx
             aut_idem_rate = 0.0
             aut_idem_trx = 0
-            if params.aut_idem_enabled:
+            if params.aut_idem_enabled and remaining_after_tender > 0:
                 aut_idem_rate = _aut_idem_curve(
                     t, params.aut_idem_ramp_months,
                     params.aut_idem_full_months, params.aut_idem_quote_peak
                 )
-                # Aut-idem drives substitution at pharmacy level
-                # Total substitutable Rx × aut-idem rate × my capture share
-                originator_remaining = total_market_trx * 0.42 * max(0.3, 1.0 - uptake)
-                aut_idem_trx = int(
-                    originator_remaining * aut_idem_rate * params.my_aut_idem_capture
-                )
+                aut_idem_pct = aut_idem_rate * params.my_aut_idem_capture
+                aut_idem_trx = int(remaining_after_tender * aut_idem_pct)
 
-            # === TENDER COMPONENT ===
-            tender_boost_factor, tender_details = _tender_volume_boost(t, params)
-            tender_trx = int(organic_trx * (tender_boost_factor - 1.0))
-
-            # === TOTAL ===
-            my_trx = organic_trx + aut_idem_trx + tender_trx
-            my_share = my_trx / total_market_trx if total_market_trx > 0 else 0
+            # --- Organic (Rest: Arzt verschreibt direkt Generikum) ---
+            organic_trx = my_trx - tender_trx - aut_idem_trx
 
             # Price
             additional_price_erosion = min(0.15, t * 0.003)
@@ -547,3 +561,61 @@ def calculate_kpis_generic(df: pd.DataFrame) -> dict:
         "volume_aut_idem_pct": total_aut_idem / total_all if total_all > 0 else 0,
         "volume_tender_pct": total_tender / total_all if total_all > 0 else 0,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ANALOGIE-VALIDIERUNG
+# ═══════════════════════════════════════════════════════════════════════
+
+def validate_against_benchmarks(
+    df: pd.DataFrame,
+    generic_segment_peak_share: float,
+) -> list[dict]:
+    """
+    Prueft die Prognose gegen oeffentlich belegte Analogie-Leitplanken.
+
+    Vergleicht total_generic_share zu festen Zeitpunkten (Monate post-LOE)
+    mit historischen Benchmarks. Gibt Warnungen zurueck wenn die Abweichung
+    groesser als das Toleranzband ist.
+
+    Args:
+        df: Forecast-DataFrame (muss 'months_since_loe' und
+            'total_generic_share' Spalten enthalten)
+        generic_segment_peak_share: Parametrisierter Peak-Share des
+            Generika-Segments (fuer Kontext in der Ausgabe)
+
+    Returns:
+        Liste von Dicts mit:
+        - months: Monate post-LOE
+        - expected: Benchmark-Wert
+        - actual: Prognostizierter Wert
+        - deviation: Abweichung in Prozentpunkten
+        - status: "OK" oder "WARNUNG"
+        - source: Quellenangabe
+    """
+    results = []
+
+    for bm in GENERIC_PENETRATION_BENCHMARKS:
+        month = bm["months_post_loe"]
+
+        # Nur pruefen wenn der Forecast-Horizont diesen Monat abdeckt
+        row = df[df["months_since_loe"] == month]
+        if row.empty:
+            continue
+
+        actual = float(row["total_generic_share"].iloc[0])
+        expected = bm["expected_share"]
+        deviation = actual - expected
+
+        status = "OK" if abs(deviation) <= bm["tolerance"] else "WARNUNG"
+
+        results.append({
+            "months": month,
+            "expected": expected,
+            "actual": actual,
+            "deviation": deviation,
+            "status": status,
+            "source": bm["source"],
+        })
+
+    return results

@@ -46,7 +46,7 @@ from models.forecast_engine import (
     OriginatorParams, GenericParams,
     forecast_originator, forecast_generic,
     calculate_kpis_originator, calculate_kpis_generic,
-    _logistic_curve, _erosion_curve, _aut_idem_curve, _tender_volume_boost,
+    _logistic_curve, _erosion_curve, _aut_idem_curve, _tender_share_of_volume,
 )
 
 PASS = 0
@@ -293,29 +293,29 @@ if abs(logistic[2] - 0.5) < 0.001:
 else:
     record("T10", "Logistic-Kurve: midpoint=0.5", "FAIL", f"f(9)={logistic[2]:.4f}, erwartet 0.5")
 
-# --- T11: _tender_volume_boost unit test ---
-# Before tender_start: boost should be 1.0
+# --- T11: _tender_share_of_volume unit test ---
+# Before tender_start: share should be 0.0
 g_test = GenericParams(tender_enabled=True, tender_start_month=3)
-boost_before, _ = _tender_volume_boost(t=1, params=g_test)
-if boost_before == 1.0:
-    record("T11a", "Tender: boost=1.0 vor Start", "PASS")
+share_before, _ = _tender_share_of_volume(t=1, params=g_test)
+if share_before == 0.0:
+    record("T11a", "Tender: share=0.0 vor Start", "PASS")
 else:
-    record("T11a", "Tender: boost=1.0 vor Start", "FAIL", f"got {boost_before}")
+    record("T11a", "Tender: share=0.0 vor Start", "FAIL", f"got {share_before}")
 
-# After tender_start: boost should be > 1.0
-boost_after, details = _tender_volume_boost(t=20, params=g_test)
-if boost_after > 1.0:
-    record("T11b", "Tender: boost>1.0 nach Start", "PASS", f"boost={boost_after:.3f}")
+# After tender_start: share should be > 0.0
+share_after, details = _tender_share_of_volume(t=20, params=g_test)
+if share_after > 0.0:
+    record("T11b", "Tender: share>0.0 nach Start", "PASS", f"share={share_after:.4f}")
 else:
-    record("T11b", "Tender: boost>1.0 nach Start", "FAIL", f"boost={boost_after}")
+    record("T11b", "Tender: share>0.0 nach Start", "FAIL", f"share={share_after}")
 
-# Disabled: should be 1.0
+# Disabled: should be 0.0
 g_no_tender = GenericParams(tender_enabled=False)
-boost_disabled, _ = _tender_volume_boost(t=20, params=g_no_tender)
-if boost_disabled == 1.0:
-    record("T11c", "Tender: boost=1.0 wenn deaktiviert", "PASS")
+share_disabled, _ = _tender_share_of_volume(t=20, params=g_no_tender)
+if share_disabled == 0.0:
+    record("T11c", "Tender: share=0.0 wenn deaktiviert", "PASS")
 else:
-    record("T11c", "Tender: boost=1.0 wenn deaktiviert", "FAIL", f"got {boost_disabled}")
+    record("T11c", "Tender: share=0.0 wenn deaktiviert", "FAIL", f"got {share_disabled}")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -556,7 +556,7 @@ else:
 
 fg_source = inspect.getsource(forecast_generic)
 # Also check helper functions that receive params (indirect usage)
-helpers_source = inspect.getsource(_tender_volume_boost)
+helpers_source = inspect.getsource(_tender_share_of_volume)
 combined_gen_source = fg_source + helpers_source
 # my_company_name is a label field, not a calculation parameter -- exclude from check
 label_fields = {"my_company_name"}
