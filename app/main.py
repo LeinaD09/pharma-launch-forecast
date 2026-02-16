@@ -288,10 +288,6 @@ def show():
                                 "status": status,
                             })
                     st.divider()
-                    aut_idem_exclusion = st.slider(
-                        "Aut-idem-Ausschlussquote (%)", 0, 40, 15, 5,
-                        help="Anteil der Rezepte, bei denen der Arzt aut-idem ausschliesst (Tender greift nicht)",
-                    )
                     my_tender_share_pct = st.slider(
                         "Mein Anteil im Rabattvertrag (%)", 20, 100, 33, 5,
                         help="Mehrfachvergabe: z.B. 33% bei 3 Vertragspartnern",
@@ -299,7 +295,6 @@ def show():
                 else:
                     tender_start = 3
                     tender_kassen = []
-                    aut_idem_exclusion = 15
                     my_tender_share_pct = 33
 
                 my_aut_idem_capture = 0.30
@@ -325,7 +320,6 @@ def show():
                 aut_idem_ramp_months=aut_idem_ramp,
                 aut_idem_full_months=aut_idem_full,
                 my_aut_idem_capture=my_aut_idem_capture,
-                aut_idem_exclusion_rate=aut_idem_exclusion / 100,
                 tender_enabled=tender_enabled,
                 tender_start_month=tender_start if tender_enabled else 3,
                 tender_kassen=tender_kassen if tender_kassen else None,
@@ -935,7 +929,6 @@ def show():
 | Generika-Segment Peak | 55% | Vergleich Clopidogrel (Plavix): 60-70% nach 3 Jahren |
 | Aut-idem Peak-Quote | 75% | Abhaengig von Arzt-Akzeptanz und Festbetrag |
 | Festbetrag-Delay | 6 Monate | G-BA braucht 3-6 Monate fuer Festbetragsgruppe |
-| Aut-idem-Ausschlussquote | 15% | Anteil Rezepte mit Arzt-Ausschluss (Bereich 5-25%) |
 | Mein Tender-Anteil | 33% | Mehrfachvergabe: typisch 3-4 Vertragspartner pro Kasse |
 | Generika Preis-Discount | 45% | Marktueblich DE: 30-60% fuer Generika |
 | COGS | 25% | Branchenueblich Small Molecule Generika |

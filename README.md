@@ -74,7 +74,7 @@ Two perspectives with independent parameter sets:
 
 **Key model features:**
 - Decision cascade: Tender > Aut-idem > Organic (no double-counting)
-- Tender volume adjusted for **aut-idem exclusion** (physician override) and **multi-award contracts** (3-4 partners per Kasse)
+- Tender volume adjusted for **aut-idem exclusion** (derived from same substitution rate used for aut-idem channel) and **multi-award contracts** (3-4 partners per Kasse)
 - Aut-idem ramp curve tied to Festbetrag (reference pricing) timeline
 - Per-Kasse tender modeling (TK, BARMER, DAK, AOKs) with win probabilities and ramp
 - Volume decomposition: organic vs. aut-idem vs. tender

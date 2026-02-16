@@ -100,9 +100,6 @@ class GenericParams:
     aut_idem_full_months: int = 12
     my_aut_idem_capture: float = 0.30     # My share of aut-idem substitutions
 
-    # Aut-idem Ausschluss (Arzt schließt Substitution aus → Tender greift nicht)
-    aut_idem_exclusion_rate: float = 0.15  # 15% der Rezepte mit aut-idem-Ausschluss
-
     # Tender parameters
     tender_enabled: bool = True
     tender_start_month: int = 3           # Months after launch until first tender
@@ -196,8 +193,10 @@ def _tender_share_of_volume(
     Anteil meines Gesamtvolumens, der durch Rabattverträge (§130a SGB V) gedeckt ist.
 
     Zwei Abzüge auf den Brutto-Tender-Anteil:
-    1. Aut-idem-Ausschluss: Arzt schließt Substitution aus → Apotheke
-       darf nicht substituieren → Rabattvertrag greift nicht.
+    1. Aut-idem-Ausschluss: Verwendet dieselbe zeitabhaengige
+       _aut_idem_curve wie die Aut-idem-Cascade. Vor Festbetrag-Aktivierung
+       ist die Exclusion ~0 (kaum ein Arzt schliesst aus), danach rampt sie
+       auf den Peak (z.B. 25% bei quote_peak=0.75).
     2. Mehrfachvergabe: Kasse vergibt an 3-4 Generika-Anbieter
        gleichzeitig (Versorgungssicherheit) → mein Anteil < 100%.
 
@@ -226,13 +225,20 @@ def _tender_share_of_volume(
 
     # Tender-Anteil meines Volumens:
     # Brutto: Gewonnene Kassen × Ramp
-    # Abzug 1: Aut-idem-Ausschluss (Arzt schließt Substitution aus)
+    # Abzug 1: Aut-idem-Ausschluss — zeitabhaengig via _aut_idem_curve.
+    #   Gleiche Curve wie in der Aut-idem-Cascade: vor Festbetrag ~0%,
+    #   danach Ramp-up auf Peak. Exclusion = 1 - aktuelle_quote.
     # Abzug 2: Mehrfachvergabe (mein Anteil unter Vertragspartnern)
     # Cap bei 0.80 — PKV, Krankenhäuser, Selbstzahler haben keine Tender.
+    current_aut_idem_rate = _aut_idem_curve(
+        t, params.aut_idem_ramp_months,
+        params.aut_idem_full_months, params.aut_idem_quote_peak
+    )
+    aut_idem_exclusion = 1 - current_aut_idem_rate
     brutto = total_expected_gkv_share * ramp
     tender_share = min(0.80,
         brutto
-        * (1 - params.aut_idem_exclusion_rate)
+        * (1 - aut_idem_exclusion)
         * params.my_tender_share
     )
 
@@ -240,7 +246,8 @@ def _tender_share_of_volume(
         "tender_active": True,
         "tender_share_of_volume": round(tender_share, 4),
         "tender_share_brutto": round(brutto, 4),
-        "aut_idem_exclusion_rate": params.aut_idem_exclusion_rate,
+        "current_aut_idem_rate": round(current_aut_idem_rate, 4),
+        "aut_idem_exclusion": round(aut_idem_exclusion, 4),
         "my_tender_share": params.my_tender_share,
         "kasse_count": len(kasse_details),
     }

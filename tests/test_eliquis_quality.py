@@ -317,19 +317,20 @@ if share_disabled == 0.0:
 else:
     record("T11c", "Tender: share=0.0 wenn deaktiviert", "FAIL", f"got {share_disabled}")
 
-# Higher exclusion rate → lower tender share
+# Lower aut-idem quote (= higher exclusion) → lower tender share
+# aut_idem_quote_peak=0.50 means 50% exclusion; 0.95 means 5% exclusion
 g_high_excl = GenericParams(tender_enabled=True, tender_start_month=3,
-                            aut_idem_exclusion_rate=0.40, my_tender_share=0.33)
+                            aut_idem_quote_peak=0.50, my_tender_share=0.33)
 g_low_excl = GenericParams(tender_enabled=True, tender_start_month=3,
-                           aut_idem_exclusion_rate=0.05, my_tender_share=0.33)
-share_high, _ = _tender_share_of_volume(t=20, params=g_high_excl)
-share_low, _ = _tender_share_of_volume(t=20, params=g_low_excl)
-if share_low > share_high > 0:
-    record("T11d", "Tender: hoehere Exclusion senkt Share", "PASS",
-           f"low_excl={share_low:.4f} > high_excl={share_high:.4f}")
+                           aut_idem_quote_peak=0.95, my_tender_share=0.33)
+share_high_excl, _ = _tender_share_of_volume(t=20, params=g_high_excl)
+share_low_excl, _ = _tender_share_of_volume(t=20, params=g_low_excl)
+if share_low_excl > share_high_excl > 0:
+    record("T11d", "Tender: niedrigere Aut-idem-Quote senkt Share", "PASS",
+           f"quote95={share_low_excl:.4f} > quote50={share_high_excl:.4f}")
 else:
-    record("T11d", "Tender: hoehere Exclusion senkt Share", "FAIL",
-           f"low_excl={share_low:.4f}, high_excl={share_high:.4f}")
+    record("T11d", "Tender: niedrigere Aut-idem-Quote senkt Share", "FAIL",
+           f"quote95={share_low_excl:.4f}, quote50={share_high_excl:.4f}")
 
 
 # ═══════════════════════════════════════════════════════════════════════
