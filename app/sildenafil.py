@@ -243,7 +243,7 @@ def show():
             <div class="kpi-sublabel">über 5 Jahre</div>
         </div>
         <div class="kpi-card-green">
-            <div class="kpi-label">Therapiequote</div>
+            <div class="kpi-label">Therapiequote ED 5J</div>
             <div class="kpi-value">{kpis['treatment_rate_final']:.0%}</div>
             <div class="kpi-sublabel">vorher: 30%</div>
         </div>
