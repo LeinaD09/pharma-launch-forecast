@@ -256,8 +256,8 @@ def show():
                                                     help="Monate nach LOE bis Generika-Segment seinen Peak erreicht")
 
             # ─── Mein Generikum ────────────────────────────────────────────
+            company_name = "Mein Generikum"
             with st.expander("Mein Generikum", expanded=True):
-                company_name = st.text_input("Firma", value="Mein Unternehmen")
                 launch_offset = st.slider("Launch nach LOE (Mon.)", 0, 12, 0, 1)
                 price_discount = st.slider("Preis-Discount (%)", 20, 70, 45, 5)
                 target_peak = st.slider("Mein Anteil am Generika-Segment (%)", 5, 50, 20, 5,
