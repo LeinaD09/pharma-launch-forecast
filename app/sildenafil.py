@@ -644,19 +644,28 @@ def show():
     # ===================================================================
     with st.expander("Methodik & Datenquellen"):
         st.markdown("""
-        **Modell-Architektur:** Dual-Channel Rx/OTC mit Apothekenverteilung. Alle Volumina in Tabletten (1 Tabl. = 1 Anwendung = 50mg).
+        **Modell-Architektur:** Volumenbasiertes Dual-Channel Rx/OTC Modell. Alle Volumina in Tabletten (1 Tabl. = 1 Anwendung = 50mg). OTC Peak ist ein direkter Input-Parameter.
 
         | Komponente | Methodik | Referenz |
         |---|---|---|
         | OTC-Ramp | Logistische S-Kurve | UK Viagra Connect Launch 2018 |
-        | Rx-Effekt | Exponentieller Decay (langsam) | UK: Rx stieg sogar post-Switch |
+        | Rx-Rueckgang | **Abgeleitet** aus OTC-Rx-Migration | Konsistenzregel: keine Doppelzaehlung |
+        | Rx-Umsatz | Herstellerumsatz (52% ex-factory) | Konsistenz mit OTC-Herstellerumsatz |
         | Apothekenverteilung | 2 Kanaele (apothekenpflichtig) | ABDA ZDF 2024: ~23% OTC online |
         | Online-Wachstum | +2 Pp./Jahr | ABDA/DatamedIQ: +1,5-2 Pp./Jahr (2019-2024) |
         | Online-Startanteil | 45% (Stigma-Kategorie) | Gewichtsabnahme 56%, Rauchentwoehn. 40% online |
-        | Diskretions-Bonus | Kanalverschiebung online | PMC: 36% der ED-Nutzer scham-/diskretionsgetrieben |
-        | Markenanteil | Linearer Erosion + Premium | UK: Generika ab GBP 0.50/Tab |
-        | Treatment Gap | Logistische Schliessung | UK: 63% Neupatienten |
-        | Marketing | Kostenfaktor (kein Volumen-Effekt) | Ramp + Maintenance-Phase |
+        | Diskretions-Effekt | Parametrisiert (Baseline 0,70 + Sensitivity 0,15) | PMC: 36% der ED-Nutzer scham-/diskretionsgetrieben |
+        | Markenanteil | Lineare Erosion + Premium (proportional auf Kanaele) | UK: Generika ab GBP 0.50/Tab |
+        | Treatment Gap | Aus OTC-Volumen abgeleitet | UK: 63% Neupatienten |
+        | Marketing | Kostenfaktor, 6-Monats-Taper zu Maintenance | Kein Volumen-Effekt |
+        | Profitabilitaet | Separate Rx/OTC Bruttogewinn-Berechnung | COGS 12% auf Herstellerumsatz |
+        | Tadalafil-Migration | Logistische S-Kurve + Saisonalitaet | Cialis bleibt Rx-only |
+
+        **Zentrale Konsistenzregeln:**
+        - Rx-Rueckgang = OTC-Rx-Migration (Tabletten koennen nicht in beiden Pools sein)
+        - Rx- und OTC-Umsatz beide auf Herstellerebene (ex-factory) fuer Vergleichbarkeit
+        - Brand Premium wird proportional auf Kanaele verteilt (nicht nur auf Gesamtsumme)
+        - Marketing-Taper: gradueller 6-Monats-Uebergang statt Stufenfunktion
 
         **Annahmen Online-Anteil (Stuetzung):**
 
@@ -664,17 +673,17 @@ def show():
         |---|---|---|
         | Online-Startanteil | 45% | Allg. OTC: 23% (ABDA 2024). Stigma-Kategorien: Gewichtsabnahme 56%, Rauchentwoehn. 40% (ecommercegermany.com). ED-Stigma vergleichbar. |
         | Online-Wachstum | +2 Pp./Jahr | Allg. OTC: ~+1,5-2 Pp./Jahr (ABDA/DatamedIQ 2019-2024, +8 Pp. in 5 Jahren). |
-        | Diskretions-Bonus | Kanalshift | PMC-Studie (DE, n=11.456): 23% Diskretion + 13% Scham = 36%. STI-Studie: 80% bevorzugen Postversand (PMC). |
+        | Diskretions-Effekt | Parametrisiert | PMC-Studie (DE, n=11.456): 23% Diskretion + 13% Scham = 36%. STI-Studie: 80% bevorzugen Postversand (PMC). |
 
         **Datenquellen (alle oeffentlich):**
         - Arnold M (2023). Public-Health-Impact OTC-Switch Sildenafil 50 mg. HSK Berlin, inav-Gutachten (Viatris)
-        - Braun et al. (2000). Cologne Male Survey – ED-Praevalenz DE (19,2% bei 30-80J.)
-        - May et al. (2007). Cottbus Survey, n=10.000 – Behandlungsquote ~30%
+        - Braun et al. (2000). Cologne Male Survey -- ED-Praevalenz DE (19,2% bei 30-80J.)
+        - May et al. (2007). Cottbus Survey, n=10.000 -- Behandlungsquote ~30%
         - Capogrosso et al. (2013). 1 von 4 Neudiagnosen <40 Jahre
-        - Lee et al. (2021). UK Real-World-Studie, n=1.162 – signif. mehr Arzt-/Apothekenbesuche post-Switch
+        - Lee et al. (2021). UK Real-World-Studie, n=1.162 -- signif. mehr Arzt-/Apothekenbesuche post-Switch
         - Gordijn et al. (2022). Apotheken-Beratungsqualitaet bei OTC-Sildenafil (Nordirland)
-        - MHRA (2017). Public Assessment Report – Viagra Connect BTC-Reklassifizierung UK
-        - ABDA (2024). Zahlen, Daten, Fakten – Versandhandel: ~23% OTC online (237 Mio. Packungen)
+        - MHRA (2017). Public Assessment Report -- Viagra Connect BTC-Reklassifizierung UK
+        - ABDA (2024). Zahlen, Daten, Fakten -- Versandhandel: ~23% OTC online (237 Mio. Packungen)
         - DatamedIQ (2022). OTC-Versandhandel: 22,6% Umsatzanteil, +8,1% YoY
         - BVDVA/IQVIA (2024). OTC-Versandhandel: 49% des Mail-Order-Umsatzes, +8,1% YoY
         - Sempora (2024). Top 15 Online-Apotheken: EUR 2,83 Mrd. Nettoumsatz
@@ -684,6 +693,8 @@ def show():
         - IQVIA Pharmamarkt DE, Apotheke Adhoc (PDE5-Marktdaten)
         - Handelsblatt / Citeline (BfArM SVA-Entscheidungen 2022/2023/2025)
         - PAGB/Frontier Economics (UK OTC Impact Report)
+
+        Ausfuehrliche Dokumentation: [docs/Modell_Volumen.md](https://github.com/leelesemann-sys/pharma-launch-forecast/blob/main/docs/Modell_Volumen.md)
         """)
 
 

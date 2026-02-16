@@ -786,15 +786,32 @@ def show():
         | Erreichbar via OTC | {addressable:.0%} | UK-Analogie + Adjustierung |
         | Adressierbarer Pool | {addressable_patients:,.0f} | Berechnet |
         | Tabl./Patient/Mon. | {tablets_per_pat:.1f} | Rx-Durchschnitt (IQVIA) |
-        | **OTC Peak (berechnet)** | **{otc_peak_computed:,.0f} Tabl./Mon.** | **Patienten × Frequenz** |
+        | **OTC Peak (berechnet)** | **{otc_peak_computed:,.0f} Tabl./Mon.** | **Patienten x Frequenz** |
+
+        **Modell-Komponenten:**
+
+        | Komponente | Methodik | Referenz |
+        |---|---|---|
+        | Patienten-Uptake | Logistische S-Kurve auf adressierbaren Pool | UK Viagra Connect Launch 2018 |
+        | Rx-Rueckgang | **Abgeleitet** aus Patienten-Migration | Konsistenz: keine Doppelzaehlung |
+        | Rx-Migrations-Cap | min(Migration, Rx-Pool) | Verhindert Phantom-Migranten |
+        | Rx-Umsatz | Herstellerumsatz (52% ex-factory) | Konsistenz mit OTC-Herstellerumsatz |
+        | Diskretions-Effekt | Parametrisiert (Baseline 0,70 + Sensitivity 0,15) | PMC: 36% scham-/diskretionsgetrieben |
+        | Marketing-Taper | 6-Monats-Uebergang zu Maintenance (50%) | Graduell statt Stufenfunktion |
+        | Profitabilitaet | Separate Rx/OTC Bruttogewinn-Berechnung | COGS 12% auf Herstellerumsatz |
+        | Tadalafil-Migration | Logistische S-Kurve + Saisonalitaet | Cialis bleibt Rx-only |
+        | Therapiequote | Aus aktiven OTC-Neupatienten abgeleitet | Steigt konsistent mit Uptake |
 
         **Unterschied zum volumenbasierten Modell:**
-        - OTC Peak wird **berechnet** (nicht als Input gesetzt)
+        - OTC Peak wird **berechnet** aus Epidemiologie (nicht als Input gesetzt)
+        - Rx-Migration ist auf den Rx-Pool **gedeckelt** (kann nicht mehr migrieren als vorhanden)
         - Therapiequote steigt **konsistent** mit tatsaechlichen OTC-Neupatientenzahlen
         - Alle Patientenzahlen sind **explizit und nachvollziehbar**
-        - Ungenutzte Parameter (trial_rate, repeat_rate) wurden durch aktive Funnel-Logik ersetzt
+        - Rx-Rueckgang (5J) ist ~84% (vs. ~92% im Volumenmodell) -- Unterschied durch Saisonalitaetseffekte auf Tabletten-Ebene, beide Modelle sind in sich konsistent
 
         **Datenquellen:** Identisch zum volumenbasierten Modell (Arnold 2023, Braun 2000, May 2007, Lee 2021, MHRA 2017, ABDA 2024).
+
+        Ausfuehrliche Dokumentation: [docs/Modell_Patient.md](https://github.com/leelesemann-sys/pharma-launch-forecast/blob/main/docs/Modell_Patient.md)
         """)
 
 

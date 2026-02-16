@@ -8,12 +8,12 @@ Interactive forecast models for pharmaceutical product launches in Germany. Buil
 
 Five forecasting engines demonstrate the breadth of launch scenarios a Strategic Portfolio Manager faces:
 
-| | Use Case 1 | Use Case 2 | Use Case 3 | Use Case 4 | Use Case 5 |
+| | Use Case 1 | Use Case 2 | Use Case 3 | Use Case 4a/4b | Use Case 5 |
 |---|---|---|---|---|---|
-| **Scenario** | Eliquis Generic Entry | GLP-1: Mounjaro vs. Ozempic | Rx-to-OTC Switch (PPI) | Sildenafil OTC Switch | Eye Care Franchise |
-| **Type** | Generic vs. Originator | Brand vs. Brand | Dual Channel (Rx + OTC) | Omnichannel + Disruption | Sequential Portfolio Launch |
+| **Scenario** | Eliquis Generic Entry | GLP-1: Mounjaro vs. Ozempic | Rx-to-OTC Switch (PPI) | Sildenafil OTC Switch (2 Modelle) | Eye Care Franchise |
+| **Type** | Generic vs. Originator | Brand vs. Brand | Dual Channel (Rx + OTC) | Omnichannel + Stigma-Markt | Sequential Portfolio Launch |
 | **Market** | Mature, eroding | Expanding, high-growth | Channel transition | Stigma-driven, underserved | Specialty, fragmented |
-| **Key Mechanic** | Aut-idem, Rabattvertraege | Indication layering, supply | Consumer awareness, pricing | Omnichannel, telemed. disruption | AMNOG pricing, Facharzt adoption |
+| **Key Mechanic** | Aut-idem, Rabattvertraege | Indication layering, supply | Consumer awareness, pricing | Dual-Channel, Patienten-Funnel | AMNOG pricing, Facharzt adoption |
 | **LOE** | May 2026 | n/a (patent protected) | n/a (OTC switch) | n/a (BfArM SVA pending) | n/a (pipeline launches) |
 | **Pricing** | Festbetrag / generic erosion | AMNOG Erstattungsbetrag | Free OTC pricing | Brand vs. generic OTC | AMNOG 3-phase lifecycle |
 
@@ -29,14 +29,16 @@ pharma-launch-forecast/
 │   ├── forecast_engine.py           # Generic Entry engine (Eliquis)
 │   ├── brand_competition_engine.py  # Brand Competition engine (GLP-1)
 │   ├── rx_otc_engine.py             # Rx-to-OTC Switch engine (PPI)
-│   ├── sildenafil_otc_engine.py     # Sildenafil OTC engine (Omnichannel)
+│   ├── sildenafil_otc_engine.py     # Sildenafil OTC engine (volume-based)
+│   ├── sildenafil_patient_engine.py # Sildenafil OTC engine (patient-based)
 │   └── ophthalmology_engine.py     # Ophthalmology Portfolio engine (Eye Care Franchise)
 ├── app/
 │   ├── app.py                       # Multi-page entry point (st.navigation)
 │   ├── main.py                      # Page: Eliquis Generic Entry
 │   ├── glp1.py                      # Page: GLP-1 Brand Competition
 │   ├── rx_otc.py                    # Page: Rx-to-OTC Switch (PPI)
-│   ├── sildenafil.py                # Page: Sildenafil OTC Switch
+│   ├── sildenafil.py                # Page: Sildenafil OTC Switch (volume-based)
+│   ├── sildenafil_patient.py        # Page: Sildenafil OTC Switch (patient-based)
 │   └── ophthalmology.py             # Page: Eye Care Franchise
 ├── data/
 │   ├── market_data.py               # NOAK/DOAK market data (synthetic)
@@ -46,12 +48,12 @@ pharma-launch-forecast/
 │   ├── build_glp1_excel.py                     # Excel generator: GLP-1
 │   ├── build_rx_otc_excel.py                   # Excel generator: Rx-to-OTC
 │   ├── build_sildenafil_excel.py               # Excel generator: Sildenafil
-│   ├── build_ophthalmology_excel.py            # Excel generator: Ophthalmology
-│   ├── Eliquis_Launch_Forecast_v2.xlsx         # Pre-built Excel (6 sheets)
-│   ├── GLP1_Brand_Competition_Forecast.xlsx    # Pre-built Excel (6 sheets)
-│   ├── RxToOTC_Switch_Forecast.xlsx            # Pre-built Excel (5 sheets)
-│   ├── Sildenafil_OTC_Switch_Forecast.xlsx     # Pre-built Excel (6 sheets)
-│   └── Ophthalmology_Portfolio_Forecast.xlsx   # Pre-built Excel (6 sheets)
+│   └── build_ophthalmology_excel.py            # Excel generator: Ophthalmology
+├── docs/
+│   ├── Modell_Volumen.md             # Documentation: volume-based Sildenafil model
+│   ├── Modell_Patient.md             # Documentation: patient-based Sildenafil model
+│   ├── KNOWLEDGE_BASE.md             # Shared knowledge base
+│   └── QUALITY_TESTS.md              # Quality test definitions
 └── requirements.txt
 ```
 
@@ -130,31 +132,44 @@ Two perspectives:
 
 **Question:** What is the commercial opportunity if Sildenafil becomes OTC in Germany?
 
-Builds on Use Case 3 but adds omnichannel distribution modeling and telemedizin disruption analysis. Reference: UK Viagra Connect (OTC since March 2018).
+Two complementary models with identical channel/pricing logic but different approaches to market sizing. Reference: UK Viagra Connect (OTC since March 2018).
 
-**What makes this model unique:**
-- **Omnichannel modeling:** Three distribution channels (stationaere Apotheke, Online-Apotheke, Drogerie) with time-dependent share evolution and channel-specific margins
-- **Discretion factor:** Channels with higher anonymity (online) get volume bonus reflecting ED stigma barrier
-- **Telemedizin disruption:** Models revenue collapse of Zava/GoSpring/TeleClinic as OTC removes need for Rx
-- **Brand vs. generic OTC:** Viagra Connect market share erosion as generic OTC sildenafil enters
-- **Treatment gap closure:** Models how OTC access brings previously untreated men into therapy
-- **Tadalafil migration:** Some Cialis/Tadalafil Rx patients switch to convenient OTC sildenafil
+### Model 4a: Volume-Based (`sildenafil_otc_engine.py`)
+
+OTC peak volume is a **direct input** (tablets/month). Simple, fast for scenario analysis.
+
+### Model 4b: Patient-Based (`sildenafil_patient_engine.py`)
+
+OTC peak is **computed** from an epidemiological patient funnel (prevalence → treatment gap → addressable pool → patients × usage frequency). Best-practice approach for pharma launches.
+
+> Both models converge to the same Base Case peak (~2.1M tablets/month) but via different paths. Detailed documentation: [`docs/Modell_Volumen.md`](docs/Modell_Volumen.md), [`docs/Modell_Patient.md`](docs/Modell_Patient.md).
+
+**What makes these models unique:**
+- **Dual-channel distribution:** Two pharmacy channels (stationaere Apotheke, Online-Apotheke) -- apothekenpflichtig, no Drogerie -- with time-dependent share evolution and channel-specific margin structures
+- **Discretion effect:** Parametrized stigma-driven channel shift (baseline + sensitivity) reflecting that 36% of ED patients cite anonymity as key factor (PMC 2020)
+- **Rx-OTC consistency:** Rx decline is **derived** from OTC migration, not set independently -- tablets/patients cannot exist in both pools simultaneously
+- **Rx manufacturer pricing:** Both Rx and OTC revenue use ex-factory (manufacturer) revenue for consistency, with `rx_manufacturer_share = 52%`
+- **Brand vs. generic OTC:** Viagra Connect share erosion with price premium, proportionally distributed across channels
+- **Tadalafil competitive moat:** Cialis/Tadalafil remains Rx-only; some patients migrate to convenient OTC sildenafil
+- **Treatment gap closure:** New OTC patients raise the effective therapy rate -- derived from actual patient volumes, not set independently
+- **Marketing taper:** Gradual 6-month linear transition from launch budget to maintenance (not a step function)
+- **Profitability KPIs:** Breakeven month, Marketing-ROI (5J), separate Rx/OTC gross profit tracking
 
 **Key model features:**
-- Dual-channel Rx/OTC with minimal Rx cannibalization (UK: Rx actually increased post-switch)
-- Three omnichannel distribution paths with margin structures
-- Telemedizin disruption curve with pivot retention
-- Brand erosion modeling (Viagra Connect vs. generic OTC)
-- Patient already pays 100% Rx (not GKV-covered) → low price friction for OTC switch
+- Dual-channel Rx/OTC with migration-based Rx decline (no double-counting)
+- Logistic S-curve for OTC ramp and Tadalafil migration
+- Seasonality (Valentine's, summer peak; autumn/winter trough)
+- Price elasticity with compound annual erosion from generic competition
+- Patient-based model adds: Rx migration cap (cannot exceed Rx pool), explicit patient funnel table
 - Three scenarios: Konservativ (SVA-Auflagen) / Base Case / Optimistisch (BMG erzwingt Switch)
 
 **Real-world data points incorporated:**
-- 4-6M men with ED in Germany, only 33% treated (Cologne Male Survey, Viatris 2023)
+- ~5M men with moderate-to-complete ED in Germany, only ~30% treated (Braun et al. 2000; May et al. 2007; Arnold 2023)
 - UK Viagra Connect: 63% new-to-therapy patients (Lee et al. 2021, n=1,162)
 - BfArM SVA rejected OTC switch 3x (2022, 2023, 2025) but BMG publicly supports it
 - Generic Rx: EUR 0.95-2.30/tablet; Viagra brand: EUR 8-14/tablet
-- Online pharmacy CAGR 12.6% (OTC segment, Grand View Research)
-- Telemedizin platforms: Zava (2M patients), GoSpring (80% chose Sildenafil)
+- Online pharmacy OTC share: ~23% general, ~45%+ for stigma categories (ABDA 2024, ecommercegermany.com)
+- PMC/Kantar (2020, n=11,456): 36% of ED patients cite discretion/shame as driver for online purchase
 
 ## Use Case 5: Eye Care Franchise – Ophthalmology Portfolio
 
