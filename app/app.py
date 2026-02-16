@@ -6,6 +6,7 @@ Five use cases accessible via sidebar navigation.
 
 import sys
 import os
+import importlib
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -18,7 +19,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Reload to bust Streamlit Cloud .pyc cache after deployments
+import models.brand_competition_engine as _bce
+importlib.reload(_bce)
+
 from main import show as eliquis_show
+import glp1 as _glp1_mod
+importlib.reload(_glp1_mod)
 from glp1 import show as glp1_show
 from rx_otc import show as rx_otc_show
 from sildenafil import show as sildenafil_show
