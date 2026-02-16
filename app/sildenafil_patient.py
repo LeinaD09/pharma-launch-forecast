@@ -635,20 +635,21 @@ def show():
             st.plotly_chart(fig_rxotc_gp, width="stretch")
 
         with col_pr2:
-            # Channel profitability: manufacturer revenue per channel
+            # Channel profitability: gross profit per channel
             # Shows the margin advantage of online over time
+            cogs_pct = params.cogs_pct
             fig_ch_profit = go.Figure()
             fig_ch_profit.add_trace(go.Bar(
-                x=df["month"], y=df["ch_apotheke_revenue"],
-                name="Stationaer (Marge 52%)", marker_color=BLUE,
+                x=df["month"], y=df["ch_apotheke_revenue"] * (1 - cogs_pct),
+                name="Stationaer (Hst. 52%)", marker_color=BLUE,
             ))
             fig_ch_profit.add_trace(go.Bar(
-                x=df["month"], y=df["ch_online_revenue"],
-                name="Online (Marge 60%)", marker_color=TEAL,
+                x=df["month"], y=df["ch_online_revenue"] * (1 - cogs_pct),
+                name="Online (Hst. 60%)", marker_color=TEAL,
             ))
             fig_ch_profit.update_layout(
                 barmode="group",
-                title="Herstellerumsatz nach Kanal",
+                title="Bruttogewinn nach Kanal (nach COGS)",
                 xaxis_title="Monate", yaxis_title="EUR",
                 height=400,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
@@ -682,13 +683,18 @@ def show():
         with col_pr4:
             fig_profit = go.Figure()
             fig_profit.add_trace(go.Bar(
-                x=df["month"], y=df["operating_profit"],
-                name="Operativer Gewinn",
-                marker_color=[GREEN if v >= 0 else RED for v in df["operating_profit"]],
+                x=df["month"], y=df["gross_profit"],
+                name="Bruttogewinn",
+                marker_color=[GREEN if v >= 0 else RED for v in df["gross_profit"]],
+            ))
+            fig_profit.add_trace(go.Scatter(
+                x=df["month"], y=df["marketing_spend"],
+                name="Marketing", line=dict(color=RED, width=1.5, dash="dot"),
             ))
             fig_profit.update_layout(
-                title="Monatlicher operativer Gewinn",
+                title="Monatl. Bruttogewinn vs. Marketing",
                 xaxis_title="Monate", yaxis_title="EUR", height=400,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
             st.plotly_chart(fig_profit, width="stretch")
 
