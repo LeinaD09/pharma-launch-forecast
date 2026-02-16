@@ -106,7 +106,7 @@ def show():
             r_growth = st.slider("Marktwachstum /Jahr (%)", 0, 10, 2, key="r_growth") / 100
             r_addressable = st.slider("Adressierbar (%)", 5, 50, 25, key="r_addr") / 100
             r_share = st.slider("Peak Marktanteil (%)", 10, 80, 50, key="r_share") / 100
-            r_speed = st.slider("Adoption (Mon. bis halber Peak MA)", 6, 36, 18, key="r_speed")
+            r_speed = st.slider("Adoption (Mon. bis ~80% Peak)", 6, 36, 18, key="r_speed")
             r_price = st.number_input("Preis/Behandlung (EUR)", 10.0, 60.0, 25.0, 1.0, key="r_price")
             r_amnog_cut = st.slider("AMNOG-Preisabschlag (%)", 0, 40, 10, key="r_amnog") / 100
 
@@ -118,7 +118,7 @@ def show():
             m_addressable = st.slider("Adressierbar (%)", 1, 10, 2, key="m_addr") / 100
             m_compliance = st.slider("Compliance (%)", 30, 90, 60, key="m_comp") / 100
             m_share = st.slider("Peak Marktanteil (%)", 10, 60, 40, key="m_share") / 100
-            m_speed = st.slider("Adoption (Mon. bis halber Peak MA)", 12, 48, 24, key="m_speed")
+            m_speed = st.slider("Adoption (Mon. bis ~80% Peak)", 12, 48, 24, key="m_speed")
             m_price = st.number_input("Preis/Monat (EUR)", 20.0, 100.0, 45.0, 5.0, key="m_price")
             m_amnog_cut = st.slider("AMNOG-Preisabschlag (%)", 5, 50, 25, key="m_amnog") / 100
 
@@ -130,7 +130,7 @@ def show():
             t_addressable = st.slider("Adressierbar (%)", 3, 30, 12, key="t_addr") / 100
             t_compliance = st.slider("Compliance (%)", 40, 85, 65, key="t_comp") / 100
             t_share = st.slider("Peak Marktanteil (%)", 5, 40, 20, key="t_share") / 100
-            t_speed = st.slider("Adoption (Mon. bis halber Peak MA)", 18, 48, 30, key="t_speed")
+            t_speed = st.slider("Adoption (Mon. bis ~80% Peak)", 18, 48, 30, key="t_speed")
             t_price = st.number_input("Preis/Monat (EUR)", 80.0, 250.0, 140.0, 10.0, key="t_price")
             t_amnog_cut = st.slider("AMNOG-Preisabschlag (%)", 5, 40, 15, key="t_amnog") / 100
 
@@ -302,7 +302,7 @@ def show():
             height=420,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, traceorder="reversed"),
         )
-        st.plotly_chart(fig1, width="stretch")
+        st.plotly_chart(fig1, use_container_width=True)
 
         # Cumulative
         col_a, col_b = st.columns(2)
@@ -325,7 +325,7 @@ def show():
                 xaxis_title="Monate", yaxis_title="EUR", height=380,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
-            st.plotly_chart(fig1b, width="stretch")
+            st.plotly_chart(fig1b, use_container_width=True)
 
         with col_b:
             fig1c = go.Figure()
@@ -340,7 +340,7 @@ def show():
                 title="Return on Investment (kumuliert)",
                 xaxis_title="Monate", yaxis_title="ROI (x)", height=380,
             )
-            st.plotly_chart(fig1c, width="stretch")
+            st.plotly_chart(fig1c, use_container_width=True)
 
     # ─── Tab 2: Product Detail ────────────────────────────────────
     with tab2:
@@ -377,7 +377,7 @@ def show():
             )
             fig_p.update_yaxes(title_text="EUR/Monat", secondary_y=False)
             fig_p.update_yaxes(title_text="Patienten", secondary_y=True)
-            st.plotly_chart(fig_p, width="stretch")
+            st.plotly_chart(fig_p, use_container_width=True)
 
     # ─── Tab 3: Field Force & GTM ─────────────────────────────────
     with tab3:
@@ -400,7 +400,7 @@ def show():
                 yaxis_title="Anzahl", height=380,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
-            st.plotly_chart(fig3, width="stretch")
+            st.plotly_chart(fig3, use_container_width=True)
 
         with col_d:
             fig3b = go.Figure()
@@ -430,7 +430,7 @@ def show():
                 yaxis_title="EUR/Monat", height=380,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
-            st.plotly_chart(fig3b, width="stretch")
+            st.plotly_chart(fig3b, use_container_width=True)
 
         # Efficiency metric
         fig3c = go.Figure()
@@ -447,7 +447,7 @@ def show():
             title="Effizienz: Umsatz pro Sales Rep/Monat",
             xaxis_title="Monate", yaxis_title="EUR/Rep/Monat", height=350,
         )
-        st.plotly_chart(fig3c, width="stretch")
+        st.plotly_chart(fig3c, use_container_width=True)
 
     # ─── Tab 4: Facharzt Adoption ─────────────────────────────────
     with tab4:
@@ -467,7 +467,7 @@ def show():
                 height=400,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
-            st.plotly_chart(fig5, width="stretch")
+            st.plotly_chart(fig5, use_container_width=True)
 
         with col_f:
             fig5b = go.Figure()
@@ -482,7 +482,7 @@ def show():
                 yaxis_tickformat=".0%", height=400,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
-            st.plotly_chart(fig5b, width="stretch")
+            st.plotly_chart(fig5b, use_container_width=True)
 
     # ─── Tab 5: AMNOG Pricing ─────────────────────────────────────
     with tab5:
@@ -505,7 +505,7 @@ def show():
             height=420,
             legend=dict(orientation="h", yanchor="bottom", y=1.02),
         )
-        st.plotly_chart(fig4, width="stretch")
+        st.plotly_chart(fig4, use_container_width=True)
 
         st.info("""
         **AMNOG-Pricing:** Jedes Produkt startet mit freier Preissetzung (Phase 1).

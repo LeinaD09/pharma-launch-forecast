@@ -168,7 +168,7 @@ def build_model():
         ("KOL-Programm/Jahr (EUR)", ff.kol_program_annual, "input", "Advisory Boards, Speaker"),
         ("Digital Marketing/Mon. (EUR)", ff.digital_marketing_monthly, "input", "Digitale Kanaele"),
         ("Synergie P2 (Kostenanteil)", ff.synergy_factor_p2, "input_pct", "P2 Launch = 70% Standalone-Kosten"),
-        ("Synergie P3 (Kostenanteil)", ff.synergy_factor_p3, "input_pct", "P3 Launch = 60% Standalone-Kosten"),
+        ("Synergie P3 (Kostenanteil)", ff.synergy_factor_p3, "input_pct", "P3 Launch = 80% Standalone-Kosten"),
     ]:
         row += 1
         write_input_row(ws, row, label, value, fk, hint)
@@ -508,18 +508,25 @@ def build_model():
 
     # Run all scenarios
     scenarios_def = {
-        "Konservativ": {"t_launch": 60, "t_share": 0.12, "ff_peak": 35, "m_launch": 24},
-        "Base Case": {"t_launch": 42, "t_share": 0.20, "ff_peak": 45, "m_launch": 18},
-        "Aggressiv": {"t_launch": 30, "t_share": 0.25, "ff_peak": 60, "m_launch": 12},
+        "Konservativ": {"t_launch": 60, "t_share": 0.12, "ff_peak": 35, "m_launch": 24,
+                        "r_speed": 24, "m_speed": 30, "t_speed": 36, "r_share": 0.40},
+        "Base Case": {"t_launch": 42, "t_share": 0.20, "ff_peak": 45, "m_launch": 18,
+                      "r_speed": 18, "m_speed": 24, "t_speed": 30, "r_share": 0.50},
+        "Aggressiv": {"t_launch": 30, "t_share": 0.25, "ff_peak": 60, "m_launch": 12,
+                      "r_speed": 12, "m_speed": 18, "t_speed": 24, "r_share": 0.60},
     }
     scenario_results = {}
     for sn, ov in scenarios_def.items():
         sp1 = default_ryzumvi()
+        sp1.peak_market_share = ov["r_share"]
+        sp1.adoption_speed = ov["r_speed"]
         sp2 = default_mr141()
         sp2.launch_month = ov["m_launch"]
+        sp2.adoption_speed = ov["m_speed"]
         sp3 = default_tyrvaya()
         sp3.launch_month = ov["t_launch"]
         sp3.peak_market_share = ov["t_share"]
+        sp3.adoption_speed = ov["t_speed"]
         sff = FieldForceParams(reps_peak=ov["ff_peak"])
         sdf = forecast_ophthalmology([sp1, sp2, sp3], sff, forecast_months=84)
         sk = calculate_kpis_ophthalmology(sdf, [sp1, sp2, sp3])
@@ -574,7 +581,7 @@ def build_model():
         "RYZUMVI: First-in-class DE, Cash-Cow ab Launch (Mydriase-Reversal = unmittelbarer Umsatz)",
         "MR-141: Potenziell transformativ (15M Presbyopie-Pat.), aber GKV-Huerde (Lifestyle-nah)",
         "Tyrvaya: Groesster Markt (DED EUR 430M), aber spaeter Launch + starker Wettbewerb (iKervis, Vevizye)",
-        "Synergien: Shared Field Force senkt P3-Launch-Kosten um 40% vs. Standalone",
+        "Synergien: Shared Field Force senkt P2-Launch-Kosten um 30% und P3 um 20% vs. Standalone",
         "Break-Even: M15 (Base Case) dank sofortigem RYZUMVI-Umsatz, vgl. M24+ bei Single-Product-Launch",
         "MVZ-Kanal: Wachsender Zugang zu konsolidierten Praxen (2.250 Aerzte, +8% p.a.)",
     ]:
@@ -662,7 +669,7 @@ def build_model():
         ("AMNOG-Abschlag P2", "25%", "Lifestyle-nah, haertere Verhandlung", "ANNAHME"),
         ("AMNOG-Abschlag P3", "15%", "Neuartiger MOA, moderate Verhandlung", "ANNAHME"),
         ("Synergy P2", "70% der Standalone-Kosten", "Shared Field Force", "ANNAHME"),
-        ("Synergy P3", "60% der Standalone-Kosten", "Etablierte Plattform + KOLs", "ANNAHME"),
+        ("Synergy P3", "80% der Standalone-Kosten", "Anderes Segment (DED), weniger Synergy", "ANNAHME"),
         ("Peak Sales Reps", "45", "1 Rep : ~150 Augenaerzte", "ANNAHME"),
         ("Peak MSLs", "12", "AMNOG-Support + KOL-Management", "ANNAHME"),
     ]
@@ -683,11 +690,11 @@ def build_model():
         ("Facharzt-Adoption", "Logistische S-Kurve: peak / (1 + exp(-k*(t-m)))", "Pharma Launch Diffusionsmodelle", "MODELL"),
         ("AMNOG-Pricing", "3-Phasen: Frei (6M) -> G-BA Cut -> Jaehrl. Erosion", "IQWiG / GKV-SV AMNOG-Verfahren", "MODELL"),
         ("Field Force Ramp", "Lineare Skalierung: Launch -> Peak ueber n Monate", "Pharma GTM Benchmarks", "MODELL"),
-        ("Cross-Product Synergy", "P2: 70%, P3: 60% der Standalone-Kosten", "Portfolio-Skaleneffekte", "MODELL"),
+        ("Cross-Product Synergy", "P2: 70%, P3: 80% der Standalone-Kosten", "Portfolio-Skaleneffekte", "MODELL"),
         ("Competitive Erosion", "Jaehrl. Share-Reduktion: share * (1 + erosion_rate)^t", "Analogie: iKervis vs. Vevizye", "MODELL"),
         ("Patient Volume", "eligible * addressable * share * compliance", "Standard Pharma Forecast", "MODELL"),
         ("MVZ-Kanal", "Basis * (1 + growth_rate)^(t/12)", "ZI-Daten, 8% p.a. Konsolidierung", "MODELL"),
-        ("Portfolio P&L", "Revenue * (1-15% avg COGS) - GTM_Cost", "Vereinfachte Portfolio-Sicht", "MODELL"),
+        ("Portfolio P&L", "Sum(Net_Revenue per product) - GTM_Cost", "Per-product COGS + Royalties", "MODELL"),
     ]
     for name, formula, ref, cat in models:
         row += 1

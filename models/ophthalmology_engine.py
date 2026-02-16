@@ -166,7 +166,7 @@ def default_ryzumvi() -> ProductParams:
         peak_prescribers=3_000,         # ophthalmologists doing exams
         prescriber_ramp_months=15,
         launch_price_monthly=25.0,      # per-use pricing, ~EUR 25 per treatment
-        amnog_month=6,
+        amnog_month=7,                  # AMNOG cut starts at absolute month 7; free pricing M1-M6
         amnog_price_cut_pct=0.10,       # unique product → mild cut
         amnog_benefit_rating="gering",
         price_erosion_annual=-0.01,
@@ -263,7 +263,7 @@ def _amnog_price(month: int, launch_month: int, launch_price: float,
         return 0.0
     # Phase 1: Free pricing (first 6 months post-launch)
     amnog_t = amnog_month - launch_month
-    if t <= amnog_t:
+    if t < amnog_t:
         return launch_price
     # Phase 2: Post-AMNOG negotiated price
     post_amnog_months = t - amnog_t
@@ -461,7 +461,10 @@ def forecast_ophthalmology(
 
         # ─── Portfolio totals ───────────────────────────────────
         gtm_cost = ff_data["total_gtm_cost"]
-        portfolio_profit = total_revenue * (1 - 0.15) - gtm_cost  # simplified: avg 15% COGS
+        total_net_revenue = sum(
+            row_data.get(f"{p.code}_net_revenue", 0) for p in products
+        )
+        portfolio_profit = total_net_revenue - gtm_cost
 
         row_data["total_revenue"] = round(total_revenue)
         row_data["total_patients"] = total_patients
@@ -477,6 +480,11 @@ def forecast_ophthalmology(
         row_data["cumulative_revenue"] = round(cum["revenue"])
         row_data["cumulative_profit"] = round(cum["profit"])
         row_data["cumulative_gtm_cost"] = round(cum["gtm_cost"])
+
+        # MVZ share: growing channel (base ~34% of GKV ophthalmologists, +8% p.a.)
+        years_into_model = (m - 1) / 12.0
+        mvz_base = 2_250 / market.gkv_ophthalmologists  # ~34%
+        row_data["mvz_share"] = min(mvz_base * (1.08 ** years_into_model), 0.70)
 
         # ROI
         row_data["roi"] = cum["profit"] / cum["gtm_cost"] if cum["gtm_cost"] > 0 else 0
