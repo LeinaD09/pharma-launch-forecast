@@ -160,8 +160,8 @@ def show():
         # BUG-E3 fix: Reset slider session_state on scenario change
         _prev_scenario = st.session_state.get("_eliq_prev_scenario")
         if _prev_scenario is not None and _prev_scenario != scenario:
-            for _k in ["Preis-Reduktion (%)", "Erosions-Speed",
-                        "Boden-Anteil (%)", "Monate bis Boden"]:
+            for _k in ["Preis-Reduktion bei LOE (%)", "Erosions-Speed",
+                        "Boden-Marktanteil (%)", "Monate bis Boden"]:
                 st.session_state.pop(_k, None)
             st.session_state["_eliq_prev_scenario"] = scenario
             st.rerun()
@@ -180,7 +180,7 @@ def show():
             aut_idem_enabled = st.checkbox("Aut-idem aktiv", value=True,
                                            help="SGB V \u00a7129 Apothekensubstitution")
             if aut_idem_enabled:
-                aut_idem_peak = st.slider("Peak-Quote (%)", 20, 95, 75, 5)
+                aut_idem_peak = st.slider("Substitutionsquote (%)", 20, 95, 75, 5)
                 aut_idem_ramp = st.slider("Festbetrag-Delay (Mon.)", 0, 12, 6, 1)
                 aut_idem_full = st.slider("Volle Subst. nach (Mon.)", 6, 24, 12, 3)
             else:
@@ -198,11 +198,11 @@ def show():
             }
             d = defaults[scenario]
 
-            with st.expander("Erosion & Preis", expanded=True):
-                price_reduction = st.slider("Preis-Reduktion (%)", 0, 40, d[0], 5)
+            with st.expander("Preis & Marktanteil", expanded=True):
+                price_reduction = st.slider("Preis-Reduktion bei LOE (%)", 0, 40, d[0], 5)
                 erosion_speed = st.slider("Erosions-Speed", 0.3, 2.0, d[1], 0.1,
                                           help="1.0=Normal, >1=schneller")
-                floor_share = st.slider("Boden-Anteil (%)", 3, 25, d[2], 1)
+                floor_share = st.slider("Boden-Marktanteil (%)", 3, 25, d[2], 1)
                 months_to_floor = st.slider("Monate bis Boden", 6, 36, d[3], 3)
 
             with st.expander("Authorized Generic", expanded=False):
@@ -355,14 +355,14 @@ def show():
             ), unsafe_allow_html=True)
         with c3:
             st.markdown(kpi_card(
-                f"Revenue at Risk ({forecast_years}J)",
-                format_eur(kpis["total_revenue_at_risk_5y"]),
+                "Umsatz-R\u00fcckgang Jahr 1",
+                f"-{kpis['year1_revenue_decline_pct']:.1f}%",
                 "red",
             ), unsafe_allow_html=True)
         with c4:
             st.markdown(kpi_card(
-                "Umsatz-R\u00fcckgang Jahr 1",
-                f"-{kpis['year1_revenue_decline_pct']:.1f}%",
+                f"Revenue at Risk ({forecast_years}J)",
+                format_eur(kpis["total_revenue_at_risk_5y"]),
                 "red",
             ), unsafe_allow_html=True)
 
@@ -543,40 +543,40 @@ def show():
             ), unsafe_allow_html=True)
         with c4:
             st.markdown(kpi_card(
+                f"Gewinn {forecast_years}J",
+                format_eur(kpis.get("total_5y_profit", 0)),
+                "green" if kpis.get("total_5y_profit", 0) > 0 else "red",
+            ), unsafe_allow_html=True)
+
+        # ─── KPI Cards Row 2: Peak Share + Volume Decomposition ─────────
+        st.markdown("")
+        c5, c6, c7, c8 = st.columns(4)
+        with c5:
+            st.markdown(kpi_card(
                 "Peak Marktanteil",
                 f"{kpis.get('peak_share', 0):.1%}",
                 "green",
             ), unsafe_allow_html=True)
-
-        # ─── KPI Cards Row 2: Volume Decomposition ──────────────────────
-        st.markdown("")
-        c5, c6, c7, c8 = st.columns(4)
-        with c5:
+        with c6:
             st.markdown(kpi_card(
                 "Volumen: Organisch",
                 f"{kpis.get('volume_organic_pct', 0):.0%}",
                 "purple",
                 "Natürlicher S-Kurven-Aufbau",
             ), unsafe_allow_html=True)
-        with c6:
+        with c7:
             st.markdown(kpi_card(
                 "Volumen: Aut-idem",
                 f"{kpis.get('volume_aut_idem_pct', 0):.0%}",
                 "purple",
                 "Apothekensubstitution",
             ), unsafe_allow_html=True)
-        with c7:
+        with c8:
             st.markdown(kpi_card(
                 "Volumen: Tender",
                 f"{kpis.get('volume_tender_pct', 0):.0%}",
                 "purple",
                 "GKV-Rabattverträge",
-            ), unsafe_allow_html=True)
-        with c8:
-            st.markdown(kpi_card(
-                f"Gewinn {forecast_years}J",
-                format_eur(kpis.get("total_5y_profit", 0)),
-                "green" if kpis.get("total_5y_profit", 0) > 0 else "red",
             ), unsafe_allow_html=True)
 
         st.markdown("")

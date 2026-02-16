@@ -90,9 +90,7 @@ def generate_eliquis_market_data() -> dict:
             revenue = trx * p["price_per_trx_eur"]
 
             history_rows.append({
-                "quarter": q.strftime("%Y-Q%q").replace(
-                    "Q%q", f"Q{(q.month - 1) // 3 + 1}"
-                ),
+                "quarter": f"{q.year}-Q{(q.month - 1) // 3 + 1}",
                 "date": q,
                 "product": product_name,
                 "company": p["company"],

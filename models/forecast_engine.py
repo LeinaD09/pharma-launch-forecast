@@ -40,7 +40,6 @@ class OriginatorParams:
 
     # Aut-idem parameters
     aut_idem_enabled: bool = True
-    aut_idem_quote_start: float = 0.0     # At LOE: 0% substitution
     aut_idem_quote_peak: float = 0.75     # Peak: 75% of new Rx get substituted
     aut_idem_ramp_months: int = 6         # Months until Festbetrag/aut-idem kicks in
     aut_idem_full_months: int = 12        # Months until peak substitution rate
@@ -88,7 +87,6 @@ class GenericParams:
     # Tender parameters
     tender_enabled: bool = True
     tender_start_month: int = 3           # Months after launch until first tender
-    tender_cycle_months: int = 24         # Typical contract duration
 
     # Individual Kasse tenders (name, covered_lives_mio, win_probability, volume_uplift)
     tender_kassen: list = None
@@ -283,9 +281,12 @@ def forecast_originator(
             trx = int(total_market_trx * share)
 
             generic_share = params.baseline_market_share - share
+            # 0.85 factor: not all lost originator share goes to generics;
+            # ~15% is absorbed by other originators (Xarelto, Lixiana) or market shifts
             generic_share = max(0, generic_share * 0.85)
             generic_trx = int(total_market_trx * generic_share)
 
+        price = round(price, 2)
         revenue = trx * price
         counterfactual_trx = int(total_market_trx * params.baseline_market_share)
         counterfactual_revenue = counterfactual_trx * params.baseline_price_per_trx
@@ -314,7 +315,7 @@ def forecast_originator(
                 ag_discount_current = params.ag_price_discount
 
             ag_trx = int(generic_trx * ag_share_current)
-            ag_price = params.baseline_price_per_trx * (1 - ag_discount_current)
+            ag_price = round(params.baseline_price_per_trx * (1 - ag_discount_current), 2)
             ag_revenue = ag_trx * ag_price
 
         rows.append({
@@ -325,7 +326,7 @@ def forecast_originator(
             "total_market_trx": int(total_market_trx),
             "originator_trx": trx,
             "originator_share": round(share, 4),
-            "originator_price": round(price, 2),
+            "originator_price": price,
             "originator_revenue": round(revenue, 2),
             "generic_segment_trx": generic_trx,
             "generic_segment_share": round(generic_share, 4),
@@ -432,7 +433,7 @@ def forecast_generic(
             my_price = params.originator_price_per_trx * (
                 1 - params.price_discount_vs_originator - additional_price_erosion
             )
-            my_price = max(my_price, 20.0)
+            my_price = round(max(my_price, 20.0), 2)
 
             my_revenue = my_trx * my_price
 
@@ -469,7 +470,7 @@ def forecast_generic(
             "my_share": round(my_share, 4),
             "aut_idem_rate": round(aut_idem_rate, 4),
             # Revenue & Profit
-            "my_price": round(my_price, 2),
+            "my_price": my_price,
             "my_revenue": round(my_revenue, 2),
             "cogs": round(cogs, 2),
             "gross_profit": round(gross_profit, 2),

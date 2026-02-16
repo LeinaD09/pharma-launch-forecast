@@ -13,6 +13,7 @@ Sheets:
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import dataclasses
 import xlsxwriter
 import numpy as np
 import pandas as pd
@@ -500,12 +501,13 @@ def build_model():
     row += 2
     ws5.merge_range(row, 1, row, 4, "Originator-Perspektive - Szenario-Vergleich", fmt["section"])
     scenario_results = {}
+    base_orig = params_o  # use the base-case params already computed above
     for sn, sp in [
         ("Bear Case", {"erosion_speed": 0.7, "floor_share": 0.18, "price_reduction_pct": 0.20, "months_to_floor": 24}),
         ("Base Case", {}),
         ("Bull Case", {"erosion_speed": 1.3, "floor_share": 0.08, "price_reduction_pct": 0.10, "months_to_floor": 12}),
     ]:
-        p = OriginatorParams(**sp)
+        p = dataclasses.replace(base_orig, **sp)
         scenario_results[sn] = calculate_kpis_originator(forecast_originator(p, forecast_months=60))
 
     row += 1
@@ -529,12 +531,13 @@ def build_model():
     row += 3
     ws5.merge_range(row, 1, row, 4, "Generika-Perspektive - Szenario-Vergleich", fmt["section"])
     gen_scenarios = {}
+    base_gen = params_g  # use the base-case params already computed above
     for sn, gp in [
         ("Bear Case", {"target_peak_share": 0.06, "price_discount_vs_originator": 0.35}),
         ("Base Case", {}),
         ("Bull Case", {"target_peak_share": 0.15, "price_discount_vs_originator": 0.50}),
     ]:
-        p = GenericParams(**gp)
+        p = dataclasses.replace(base_gen, **gp)
         gen_scenarios[sn] = calculate_kpis_generic(forecast_generic(p, forecast_months=60))
 
     row += 1
