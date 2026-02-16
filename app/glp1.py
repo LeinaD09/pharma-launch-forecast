@@ -82,7 +82,7 @@ def show():
     # ─── Sidebar ────────────────────────────────────────────────────────────
     with st.sidebar:
         st.title("GLP-1 Forecast")
-        st.caption("Patientenbasiertes Modell")
+        st.caption("Patientenbasiertes Modell | UNDER CONSTRUCTION")
 
         perspective = st.radio(
             "Perspektive",
@@ -314,7 +314,7 @@ def show():
     kpis = calculate_kpis_brand(df)
 
     # ─── Main ─────────────────────────────────────────────────────────────
-    st.title("GLP-1 Markt \u2013 Brand Competition Forecast")
+    st.title("GLP-1 Markt \u2013 Brand Competition Forecast \U0001f6a7 UNDER CONSTRUCTION")
     comp_name = "Ozempic / Wegovy" if is_lilly else "Mounjaro"
     st.markdown(
         f"**Patientenbasiertes Modell** | "
