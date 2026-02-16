@@ -64,19 +64,21 @@ pharma-launch-forecast/
 Two perspectives with independent parameter sets:
 
 - **Originator (BMS/Pfizer):** Revenue-at-Risk quantification. Models market share erosion via exponential decay with configurable floor, authorized generic strategy, and price defense.
-- **Generic Challenger:** Market opportunity sizing. Models uptake via logistic S-curve with three volume sources:
+- **Generic Challenger:** Market opportunity sizing. Models uptake via logistic S-curve with a **decision cascade** that allocates volume by priority:
 
-| Volume Source | Mechanism | Regulatory Basis |
-|---|---|---|
-| Organic | Physician switching, formulary listing | Standard market access |
-| Aut-idem | Pharmacy-level substitution | SGB V Par.129 (mandatory generic substitution) |
-| Tender | Krankenkasse exclusive contracts | Par.130a SGB V (Rabattvertraege) |
+| Priority | Volume Source | Mechanism | Regulatory Basis |
+|---|---|---|---|
+| 1 (highest) | Tender | Krankenkasse exclusive contracts | Par.130a SGB V (Rabattvertraege) |
+| 2 | Aut-idem | Pharmacy-level substitution (non-tender remainder) | SGB V Par.129 (mandatory generic substitution) |
+| 3 | Organic | Physician switching, formulary listing (residual) | Standard market access |
 
 **Key model features:**
+- Decision cascade: Tender > Aut-idem > Organic (no double-counting)
 - Aut-idem ramp curve tied to Festbetrag (reference pricing) timeline
-- Per-Kasse tender modeling (TK, BARMER, DAK, AOKs) with win probabilities
+- Per-Kasse tender modeling (TK, BARMER, DAK, AOKs) with win probabilities and ramp
 - Volume decomposition: organic vs. aut-idem vs. tender
 - Originator price defense and authorized generic cannibalization
+- **Analogie-Leitplanken:** Benchmark validation against published generic penetration data (Fischer & Stargardt 2016, GaBi Journal, Bayer Q-reports, PMC) with +/-15pp tolerance bands
 
 ## Use Case 2: GLP-1 Brand Competition
 
