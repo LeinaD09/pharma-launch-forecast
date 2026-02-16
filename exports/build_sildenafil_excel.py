@@ -90,8 +90,8 @@ def build_model():
         ("Unternehmen", "Viatris", "input_text", "Inhaber der Marke Viagra"),
         ("Switch-Datum (hypothetisch)", "2027", "input_text", "BMG koennte SVA ueberstimmen"),
         ("ED-Praevalenz DE", 5_000_000, "input", "Maenner mit moderater-schwerer ED"),
-        ("Therapiequote aktuell", 0.33, "input_pct", "Nur 1/3 werden behandelt"),
-        ("Therapieluecke", 3_350_000, "input", "Unbehandelte Maenner (berechnet)"),
+        ("Therapiequote aktuell", 0.30, "input_pct", "Nur 30% werden behandelt (May et al. 2007)"),
+        ("Therapieluecke", 3_500_000, "input", "Unbehandelte Maenner (berechnet)"),
     ]:
         row += 1
         write_input_row(ws, row, label, value, fk, hint)
@@ -127,7 +127,7 @@ def build_model():
     for label, value, fk, hint in [
         ("Stationaere Apotheke (%)", 0.55, "input_pct", "Face-to-face, Beratung, Sofortabholung"),
         ("Online-Apotheke (%)", 0.45, "input_pct", "DocMorris, Shop Apotheke – Anonymitaet!"),
-        ("Online-Wachstum p.a. (Pp.)", 0.03, "input_pct", "CAGR OTC Online: 12.6%"),
+        ("Online-Wachstum p.a. (Pp.)", 0.02, "input_pct", "ABDA ZDF 2024: ~+1.5-2 Pp./Jahr"),
         ("Apothekenmarge (stationaer)", 0.42, "input_pct", "Freie OTC-Preisgestaltung"),
         ("Online-Marge", 0.30, "input_pct", "Wettbewerbsdruck, niedrigere Kosten"),
     ]:
@@ -137,7 +137,7 @@ def build_model():
     row += 2
     ws.merge_range(row, 1, row, 3, "5. MARKE vs. GENERIKA OTC", fmt["section"])
     for label, value, fk, hint in [
-        ("Viagra Connect Anteil (OTC)", 0.45, "input_pct", "Markenstaerke vs. Generikadruck"),
+        ("Viagra Connect Anteil (OTC)", 0.25, "input_pct", "Markenstaerke vs. Generikadruck"),
         ("Markenanteil-Erosion p.a.", -0.03, "input_pct", "Generikahersteller dringen in OTC"),
         ("Preispremium Marke", 1.80, "input", "Marke ist 1.8x teurer als Generika OTC"),
     ]:
@@ -145,28 +145,17 @@ def build_model():
         write_input_row(ws, row, label, value, fk, hint)
 
     row += 2
-    ws.merge_range(row, 1, row, 3, "6. TELEMEDIZIN-DISRUPTION", fmt["section"])
-    for label, value, fk, hint in [
-        ("Telemed. Umsatz/Mon. (EUR)", 4_500_000, "input", "Zava, GoSpring, TeleClinic etc."),
-        ("Telemed. Umsatzrueckgang", 0.60, "input_pct", "OTC entfernt Rezeptpflicht als USP"),
-        ("Telemed. Retention", 0.15, "input_pct", "Verbleibend: Beratung, Diagnostik"),
-    ]:
-        row += 1
-        write_input_row(ws, row, label, value, fk, hint)
-
-    row += 2
-    ws.merge_range(row, 1, row, 3, "7. SZENARIO-DEFINITIONEN", fmt["section"])
+    ws.merge_range(row, 1, row, 3, "6. SZENARIO-DEFINITIONEN", fmt["section"])
     row += 1
     for c, h in enumerate(["Parameter", "Konservativ", "Base Case", "Optimistisch"]):
         ws.write(row, 1 + c, h, fmt["th"])
     for param, cons, base, opti in [
         ("OTC Peak Tabl./Mon.", 1_200_000, 2_100_000, 2_700_000),
-        ("OTC Preis/Tablette (EUR)", 4.99, 5.99, 6.99),
         ("Monate bis Peak", 24, 18, 12),
         ("Marketing/Monat (EUR)", 300_000, 500_000, 750_000),
         ("Neue Patienten (%)", 0.55, 0.63, 0.70),
         ("Rx-Rueckgang", 0.12, 0.08, 0.05),
-        ("Viagra Markenanteil OTC", 0.35, 0.45, 0.50),
+        ("Viagra Markenanteil OTC", 0.20, 0.25, 0.35),
     ]:
         row += 1
         ws.write(row, 1, param, fmt["label_bold"])
@@ -195,7 +184,7 @@ def build_model():
         ("ED-Praevalenz (DE)", "4-6 Mio. Maenner (bis 8 Mio. mild)"),
         ("Cologne Male Survey (n=4.489)", "19.2% ED-Praevalenz gesamt"),
         ("Moderate-schwere ED (Viatris 2023)", "~5 Mio. Maenner"),
-        ("Therapiequote", "Nur 33% erhalten Behandlung"),
+        ("Therapiequote", "Nur 30% erhalten Behandlung (May et al. 2007)"),
         ("Primaere Barriere", "Scham / Stigma (GoSpring-Studie)"),
         ("GKV-Erstattung", "NEIN – Patient zahlt 100%"),
     ]:
@@ -233,18 +222,6 @@ def build_model():
         ("Neupatienten (nie vorher behandelt)", "63% (UK Real-World-Studie, n=1.162)"),
         ("NHS Rx-Effekt", "Rx-Verordnungen STIEGEN ebenfalls"),
         ("UK ED-Markt (2023)", "USD 260 Mio. (CAGR 7.2%)"),
-    ]:
-        row += 1
-        ws2.write(row, 1, label, fmt["label_bold"])
-        ws2.merge_range(row, 2, row, 5, value, fmt["label"])
-
-    row += 2
-    ws2.merge_range(row, 1, row, 5, "Telemedizin ED-Plattformen", fmt["section"])
-    for label, value in [
-        ("Zava (Hims)", "2M Patienten (2018), ED-Konsult. EUR 29"),
-        ("GoSpring", "11.456 ED-Pat. (Mai-Nov 2019), 80% Sildenafil"),
-        ("TeleClinic", "Video-Konsultation + Rx"),
-        ("Disruption durch OTC", "Kerngeschaeft (Rx) entfaellt"),
     ]:
         row += 1
         ws2.write(row, 1, label, fmt["label_bold"])
@@ -422,11 +399,11 @@ def build_model():
     for sn, sp in [
         ("Konservativ", {"otc_peak_tablets_per_month": 1_200_000, "otc_ramp_months": 24,
                          "marketing_monthly_eur": 300_000, "new_patient_share": 0.55,
-                         "rx_decline_rate": 0.12, "brand_otc_share": 0.35}),
+                         "rx_decline_rate": 0.12, "brand_otc_share": 0.20}),
         ("Base Case", {}),
         ("Optimistisch", {"otc_peak_tablets_per_month": 2_700_000, "otc_ramp_months": 12,
                           "marketing_monthly_eur": 750_000, "new_patient_share": 0.70,
-                          "rx_decline_rate": 0.05, "brand_otc_share": 0.50}),
+                          "rx_decline_rate": 0.05, "brand_otc_share": 0.35}),
     ]:
         p = SildenafilOtcParams(**sp)
         scenario_results[sn] = calculate_kpis_sildenafil(forecast_sildenafil_otc(p))
@@ -499,7 +476,7 @@ def build_model():
         ws6.write(row, 1 + c, h, fmt["th"])
     facts = [
         ("ED-Praevalenz DE", "4-6 Mio. (Cologne Male Survey)", "Nature / Braun et al.", "FAKT"),
-        ("Therapiequote", "33% (2/3 unbehandelt)", "Viatris DE / Handelsblatt", "FAKT"),
+        ("Therapiequote", "30% (May et al. 2007; Arnold 2023)", "Viatris DE / Handelsblatt", "FAKT"),
         ("PDE5-Markt DE", "~2.6 Mio. Pack./Jahr", "IQVIA / Apotheke Adhoc", "FAKT"),
         ("Sildenafil-Anteil", "55-65% der PDE5-Packs", "Apotheke Adhoc / Handelsblatt", "FAKT"),
         ("Viagra Markenanteil", "~10% der Sild.-Packs", "Apotheke Adhoc", "FAKT"),
@@ -529,9 +506,8 @@ def build_model():
         ("OTC Preis", "EUR 5.99/Tab", "Zwischen UK GBP 5 und Rx-Generika EUR 1.50", "ANNAHME"),
         ("Neue Patienten", "63%", "UK-Referenz: 63% nie vorher behandelt", "ANNAHME"),
         ("Rx-Rueckgang", "8%", "UK: Rx stieg sogar! Konservativ: -8%", "ANNAHME"),
-        ("Online-Anteil", "40% (steigend)", "Anonymitaet = Kernvorteil bei ED/Stigma", "ANNAHME"),
-        ("Markenanteil", "45% (sinkend)", "Viagra-Brand stark, aber Generikadruck", "ANNAHME"),
-        ("Telemed. Verlust", "60%", "Rx-Pflicht = Kern-USP der Plattformen", "ANNAHME"),
+        ("Online-Anteil", "45% (steigend)", "Anonymitaet = Kernvorteil bei ED/Stigma", "ANNAHME"),
+        ("Markenanteil", "25% (sinkend)", "Viagra-Brand stark, aber Generikadruck", "ANNAHME"),
         ("Marketing", "EUR 500K/Mon.", "Hoeher als PPI: DTC Brand Building", "ANNAHME"),
     ]
     for param, val, reason, cat in assumptions:
@@ -551,8 +527,7 @@ def build_model():
         ("Rx-Effekt", "Exp. Decay mit hohem Floor (92%)", "UK: Rx stieg – konservativ modelliert", "MODELL"),
         ("Apothekenverteilung", "2 Kanaele (apothekenpflichtig)", "Online CAGR 12.6%, Discretion-Faktor", "MODELL"),
         ("Discretion-Bonus", "Kanal-Volumen * (1 + (disc-0.7)*0.15)", "ED-Stigma treibt anonyme Kanaele", "MODELL"),
-        ("Telemed.-Disruption", "Exp. Decay + Pivot-Retention (15%)", "Zava/GoSpring verlieren Rx-Geschaeft", "MODELL"),
-        ("Markenanteil-Erosion", "Linear: -3Pp/Jahr, Floor 15%", "Generikadruck analog UK", "MODELL"),
+        ("Markenanteil-Erosion", "Linear: -3Pp/Jahr, Floor 10%", "Generikadruck analog UK", "MODELL"),
         ("Tadalafil-Migration", "Logistic: 12% der Tada-Tabl. zu OTC Sild.", "Convenience-Vorteil OTC", "MODELL"),
     ]
     for name, formula, ref, cat in models:
@@ -574,7 +549,6 @@ def build_model():
         ("Consumer-Tracking ED", "Awareness, Consideration, Trial auf Produktebene", "GfK / Kantar Consumer Panel", "LUECKE"),
         ("Preiselastizitaet (gemessen)", "Conjoint-Analyse fuer OTC ED-Preispunkte", "Primaerforschung / Scanner-Daten", "LUECKE"),
         ("Online-Kanal Split", "Marktanteile DocMorris vs. Shop Apotheke fuer ED", "SEMPORA / IQVIA", "LUECKE"),
-        ("Telemedizin-Umsatzdaten", "Tatsaechliche ED-Umsaetze Zava/GoSpring DE", "Firmenberichte (nicht-oeffentlich)", "LUECKE"),
         ("BfArM Switch-Wahrscheinlichkeit", "Politische Dynamik BMG vs. SVA", "Regulatorische Intelligence", "LUECKE"),
     ]
     for gap_name, desc, source, cat in gaps:

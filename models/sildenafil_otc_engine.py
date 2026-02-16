@@ -107,10 +107,11 @@ class SildenafilOtcParams:
     stigma_reduction_factor: float = 0.40  # OTC removes stigma -> 40% of barrier gone
     # Treatment gap closure rate (how many untreated men start buying OTC)
     treatment_gap_closure_rate: float = 0.08  # 8% of untreated switch to OTC over 5 years
+    treatment_gap_ramp_months: int = 60       # months over which gap closure ramps linearly
 
     # --- Brand vs. Generic OTC ----------------------------------
     brand_otc_share: float = 0.25          # Viagra Connect vs generic OTC sildenafil
-    brand_otc_share_trend: float = -0.04   # annual erosion from generic OTC entrants
+    brand_otc_share_trend: float = -0.03   # annual erosion from generic OTC entrants
     brand_price_premium: float = 1.8       # brand is 1.8x generic OTC price
 
     # --- Price dynamics -----------------------------------------
@@ -177,7 +178,9 @@ class SildenafilOtcParams:
 
 def _logistic(t: float, peak: float, midpoint: float, steepness: float) -> float:
     """Generic logistic S-curve."""
-    return peak / (1.0 + np.exp(-steepness * (t - midpoint)))
+    x = -steepness * (t - midpoint)
+    x = np.clip(x, -500, 500)
+    return peak / (1.0 + np.exp(x))
 
 
 def _otc_ramp(month: int, peak: int, ramp_months: int) -> float:
@@ -186,15 +189,29 @@ def _otc_ramp(month: int, peak: int, ramp_months: int) -> float:
         return float(peak)
     midpoint = ramp_months * 0.45
     steepness = 6.0 / ramp_months
-    return peak / (1.0 + np.exp(-steepness * (month - midpoint)))
+    x = -steepness * (month - midpoint)
+    x = np.clip(x, -500, 500)
+    return peak / (1.0 + np.exp(x))
 
 
 def _rx_effect(month: int, initial: int, decline_rate: float, decline_months: int) -> float:
-    """Rx volume with slow decline (UK reference: Rx may even grow initially)."""
+    """Rx volume with slow decline (UK reference: Rx may even grow initially).
+
+    Calibrated so that at month=decline_months the volume has declined by
+    exactly decline_rate (e.g. 8%) from the initial level.  Uses a half-life
+    approach: the half-life is set so that the exponential decay reaches the
+    target floor at the specified month.
+    """
     if decline_months <= 0 or decline_rate <= 0:
         return float(initial)
-    k = -np.log(1 - decline_rate) / decline_months
-    floor = initial * (1 - decline_rate)
+    decline_rate = min(decline_rate, 0.99)  # guard against >= 1.0
+    floor = initial * (1.0 - decline_rate)
+    # Calibrate k so that floor + (initial - floor) * exp(-k * decline_months) = floor
+    # i.e. exp(-k * dm) = 0  -- we can't reach exactly zero, so instead calibrate so
+    # that at month=decline_months the decline is 95% complete:
+    # value(dm) = floor + 0.05 * (initial - floor)
+    # => exp(-k * dm) = 0.05  => k = -ln(0.05) / dm = ln(20) / dm
+    k = np.log(20.0) / decline_months
     return floor + (initial - floor) * np.exp(-k * month)
 
 
@@ -241,6 +258,7 @@ def forecast_sildenafil_otc(
             m, params.rx_tablets_per_month,
             params.rx_decline_rate, params.rx_decline_months
         )
+        rx_tablets *= season_factor  # Rx also has seasonal patterns (Valentine's, summer)
         # Weighted average Rx price per tablet
         rx_avg_price = (
             params.rx_brand_share * params.rx_price_brand +
@@ -252,8 +270,8 @@ def forecast_sildenafil_otc(
         otc_base = _otc_ramp(m, params.otc_peak_tablets_per_month, params.otc_ramp_months)
         otc_seasonal = otc_base * season_factor
 
-        # Price effect
-        price_change = params.price_trend_annual * year_frac
+        # Price effect (compound, consistent with otc_price_now calculation)
+        price_change = (1 + params.price_trend_annual) ** year_frac - 1.0
         price_vol_effect = 1.0 + (price_change * params.price_elasticity)
         otc_total_tablets = max(0, otc_seasonal * price_vol_effect)
 
@@ -317,8 +335,8 @@ def forecast_sildenafil_otc(
 
         # --- Brand vs. Generic OTC -----------------------------
         brand_share = max(0.10, params.brand_otc_share + params.brand_otc_share_trend * year_frac)
-        otc_brand_tablets = otc_total_tablets_adj * brand_share
-        otc_generic_tablets = otc_total_tablets_adj * (1 - brand_share)
+        otc_brand_tablets = round(otc_total_tablets_adj * brand_share)
+        otc_generic_tablets = otc_total_tablets_adj - otc_brand_tablets  # ensures sum == total
 
         # Brand premium: Viagra Connect sells at a premium vs. generic OTC.
         generic_price = otc_price_now
@@ -334,10 +352,10 @@ def forecast_sildenafil_otc(
         # Tadalafil migration is a known absolute volume; allocate the
         # remainder between new patients and Rx migration using the
         # new_patient_share ratio so the parts always sum to total.
-        otc_from_tadalafil = min(tada_migration, otc_total_tablets_adj)
+        otc_from_tadalafil = round(min(tada_migration, otc_total_tablets_adj))
         otc_excl_tada = otc_total_tablets_adj - otc_from_tadalafil
-        otc_from_new_patients = otc_excl_tada * params.new_patient_share
-        otc_from_rx_migration = otc_excl_tada * (1 - params.new_patient_share)
+        otc_from_new_patients = round(otc_excl_tada * params.new_patient_share)
+        otc_from_rx_migration = otc_excl_tada - otc_from_new_patients  # ensures sum == total
 
         # --- Total tablets -------------------------------------
         total_tablets = rx_tablets + otc_total_tablets_adj
@@ -361,8 +379,7 @@ def forecast_sildenafil_otc(
 
         # --- Treatment gap metric ------------------------------
         untreated = params.ed_prevalence_men * (1 - params.treatment_rate)
-        # Linear ramp over 36 months, capped at closure_rate
-        ramp_frac = min(1.0, m / 36)
+        ramp_frac = min(1.0, m / params.treatment_gap_ramp_months)
         newly_treated_cumulative = untreated * params.treatment_gap_closure_rate * ramp_frac
         treatment_rate_new = params.treatment_rate + (
             newly_treated_cumulative / params.ed_prevalence_men
@@ -391,14 +408,14 @@ def forecast_sildenafil_otc(
             "ch_online_share": channel_data.get(params.channels[1].name, {}).get("share", 0) if len(params.channels) > 1 else 0,
 
             # Brand vs Generic OTC
-            "otc_brand_tablets": round(otc_brand_tablets),
-            "otc_generic_tablets": round(otc_generic_tablets),
+            "otc_brand_tablets": otc_brand_tablets,
+            "otc_generic_tablets": otc_generic_tablets,
             "otc_brand_share": brand_share,
 
             # Volume decomposition (all in tablets)
-            "otc_from_new_patients": round(otc_from_new_patients),
-            "otc_from_rx_migration": round(otc_from_rx_migration),
-            "otc_from_tadalafil": round(otc_from_tadalafil),
+            "otc_from_new_patients": otc_from_new_patients,
+            "otc_from_rx_migration": otc_from_rx_migration,
+            "otc_from_tadalafil": otc_from_tadalafil,
 
             # Combined
             "total_tablets": round(total_tablets),
@@ -447,10 +464,10 @@ def calculate_kpis_sildenafil(df: pd.DataFrame) -> dict:
     peak_otc_tablets = int(df.loc[peak_idx, "otc_tablets"])
     peak_otc_month = int(df.loc[peak_idx, "month"])
 
-    # Rx decline
-    rx_start = df.iloc[0]["rx_tablets"]
-    rx_end = last["rx_tablets"]
-    rx_decline_pct = (rx_start - rx_end) / rx_start if rx_start > 0 else 0
+    # Rx decline (season-adjusted: compare Year 1 total vs. last-12-months total)
+    rx_y1 = df[df["month"] <= 12]["rx_tablets"].sum()
+    rx_last12 = df[df["month"] > (df["month"].max() - 12)]["rx_tablets"].sum()
+    rx_decline_pct = (rx_y1 - rx_last12) / rx_y1 if rx_y1 > 0 else 0
 
     # Channel shares at month 12
     m12 = df[df["month"] == 12]
