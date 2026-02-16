@@ -89,21 +89,21 @@ def show():
 
         if scenario == "Optimistisch (BMG erzwingt Switch)":
             _d = dict(addressable=19, ramp=12, mktg=750_000,
-                      new_patient=70, rx_decline=5, brand_share=35,
+                      new_patient=70, brand_share=35,
                       tablets_per_pat=4.5)
         elif scenario == "Konservativ (SVA-Auflagen)":
             _d = dict(addressable=8, ramp=24, mktg=300_000,
-                      new_patient=55, rx_decline=12, brand_share=20,
+                      new_patient=55, brand_share=20,
                       tablets_per_pat=3.5)
         else:
             _d = dict(addressable=15, ramp=18, mktg=500_000,
-                      new_patient=63, rx_decline=8, brand_share=25,
+                      new_patient=63, brand_share=25,
                       tablets_per_pat=4.0)
 
         _prev = st.session_state.get("_silpat_prev_scenario")
         if _prev is not None and _prev != scenario:
             for _k in ["silpat_addr", "silpat_ramp", "silpat_np",
-                        "silpat_rxdec", "silpat_brand", "silpat_tpp"]:
+                        "silpat_brand", "silpat_tpp"]:
                 st.session_state.pop(_k, None)
             st.session_state["_silpat_prev_scenario"] = scenario
             st.rerun()
@@ -173,9 +173,7 @@ def show():
             rx_brand_share = st.slider(
                 "Viagra Markenanteil Rx (%)", 2, 25, 10,
                 key="silpat_rxbs") / 100
-            rx_decline = st.slider(
-                "Rx-Rueckgang durch OTC (%)", 0, 30,
-                _d["rx_decline"], key="silpat_rxdec") / 100
+            st.caption("*Rx-Rueckgang wird automatisch aus OTC-Rx-Migration berechnet*")
 
         # --- Brand vs. Generic ---
         with st.expander("OTC Marke vs. Generika", expanded=False):
@@ -223,7 +221,6 @@ def show():
         rx_price_brand=rx_price_brand,
         rx_price_generic=rx_price_generic,
         rx_brand_share=rx_brand_share,
-        rx_decline_rate=rx_decline,
         otc_price_per_tablet=otc_price,
         tadalafil_patients_monthly=tada_patients,
         tadalafil_switch_pct=tada_switch,
@@ -707,12 +704,12 @@ def show():
     scenarios = {
         "Konservativ": {"addressable_pct": 0.08, "uptake_ramp_months": 24,
                         "marketing_monthly_eur": 300_000, "new_patient_share": 0.55,
-                        "rx_decline_rate": 0.12, "brand_otc_share": 0.20,
+                        "brand_otc_share": 0.20,
                         "tablets_per_patient_per_month": 3.5},
         "Base Case": {},
         "Optimistisch": {"addressable_pct": 0.19, "uptake_ramp_months": 12,
                          "marketing_monthly_eur": 750_000, "new_patient_share": 0.70,
-                         "rx_decline_rate": 0.05, "brand_otc_share": 0.35,
+                         "brand_otc_share": 0.35,
                          "tablets_per_patient_per_month": 4.5},
     }
 

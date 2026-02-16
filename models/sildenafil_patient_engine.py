@@ -92,8 +92,10 @@ class SildenafilPatientParams:
     rx_price_brand: float = 11.19           # Viagra brand per tablet
     rx_price_generic: float = 1.50          # generic per tablet
     rx_brand_share: float = 0.10            # Viagra brand % of Rx volume
-    rx_decline_rate: float = 0.08           # Rx decline from OTC cannibalization
-    rx_decline_months: int = 36
+    # Note: rx_decline is no longer an independent parameter.
+    # It is DERIVED from otc_rxmigration_patients (= otc_active * (1 - new_patient_share)).
+    # This ensures consistency: patients who leave Rx for OTC are subtracted
+    # from rx_patients, not modeled via a separate exponential curve.
 
     # --- OTC pricing --------------------------------------------
     otc_price_per_tablet: float = 5.99
@@ -172,7 +174,10 @@ def _patient_uptake(month: int, addressable_patients: int, ramp_months: int) -> 
 
 
 def _rx_effect(month: int, initial: float, decline_rate: float, decline_months: int) -> float:
-    """Rx volume with slow exponential decline."""
+    """Rx volume with slow exponential decline.
+    DEPRECATED for patient engine — kept for volume engine compatibility.
+    Patient engine now derives Rx decline from actual OTC migration.
+    """
     if decline_months <= 0 or decline_rate <= 0:
         return float(initial)
     decline_rate = min(decline_rate, 0.99)
@@ -249,13 +254,16 @@ def forecast_sildenafil_patient(
         otc_new_patients = otc_patients_active * params.new_patient_share
         otc_rxmigration_patients = otc_patients_active * (1 - params.new_patient_share)
 
-        # Rx patients (declining)
-        rx_patients = _rx_effect(
-            m, params.rx_patients_monthly,
-            params.rx_decline_rate, params.rx_decline_months,
-        )
+        # Rx patients: baseline MINUS those who migrated to OTC.
+        # This ensures consistency — patients can't be in both pools.
+        # Cap at 0 to prevent negative Rx counts if migration > baseline.
+        rx_patients = max(0.0, params.rx_patients_monthly - otc_rxmigration_patients)
 
-        # Total patients in treatment
+        # Total UNIQUE patients in treatment (no double-counting):
+        #   rx_patients (remaining Rx) + otc_new_patients (new-to-therapy)
+        #   + otc_rxmigration_patients (left Rx, now in OTC)
+        #   + tada_migration_patients (from Tadalafil Rx)
+        # = rx_patients + otc_patients_active + tada_migration_patients
         total_patients = rx_patients + otc_patients_active + tada_migration_patients
 
         # ============================================================
