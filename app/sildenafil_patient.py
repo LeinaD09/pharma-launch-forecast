@@ -606,37 +606,91 @@ def show():
 
     # --- Tab 4: Profitabilität ----------------------------------------
     with tab4:
-        fig_cum = go.Figure()
-        fig_cum.add_trace(go.Scatter(
-            x=df["month"], y=df["cumulative_total_revenue"],
-            name="Kum. Umsatz", line=dict(color=BLUE, width=2.5),
-        ))
-        fig_cum.add_trace(go.Scatter(
-            x=df["month"], y=df["cumulative_profit"],
-            name="Kum. Gewinn", line=dict(color=GREEN, width=2.5),
-        ))
-        fig_cum.add_trace(go.Scatter(
-            x=df["month"], y=df["cumulative_marketing"],
-            name="Kum. Marketing", line=dict(color=RED, width=1.5, dash="dot"),
-        ))
-        fig_cum.update_layout(
-            title="Kumulierter Umsatz, Gewinn & Marketing-Invest",
-            xaxis_title="Monate", yaxis_title="EUR", height=420,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        )
-        st.plotly_chart(fig_cum, width="stretch")
+        # Row 1: Rx vs. OTC revenue + Channel profitability
+        col_pr1, col_pr2 = st.columns(2)
 
-        fig_profit = go.Figure()
-        fig_profit.add_trace(go.Bar(
-            x=df["month"], y=df["operating_profit"],
-            name="Operativer Gewinn",
-            marker_color=[GREEN if v >= 0 else RED for v in df["operating_profit"]],
-        ))
-        fig_profit.update_layout(
-            title="Monatlicher operativer Gewinn",
-            xaxis_title="Monate", yaxis_title="EUR", height=380,
-        )
-        st.plotly_chart(fig_profit, width="stretch")
+        with col_pr1:
+            fig_rxotc_rev = go.Figure()
+            fig_rxotc_rev.add_trace(go.Bar(
+                x=df["month"], y=df["rx_revenue"],
+                name="Rx Umsatz", marker_color="#93c5fd",
+            ))
+            fig_rxotc_rev.add_trace(go.Bar(
+                x=df["month"], y=df["otc_manufacturer_revenue"],
+                name="OTC Umsatz (Hersteller)", marker_color="#5eead4",
+            ))
+            co_rev = kpis.get("crossover_month")
+            if co_rev:
+                fig_rxotc_rev.add_vline(
+                    x=co_rev, line_dash="dot", line_color=AMBER,
+                    annotation_text=f"OTC > Rx (M{co_rev})",
+                )
+            fig_rxotc_rev.update_layout(
+                barmode="stack",
+                title="Herstellerumsatz: Rx vs. OTC",
+                xaxis_title="Monate", yaxis_title="EUR",
+                height=400,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            )
+            st.plotly_chart(fig_rxotc_rev, width="stretch")
+
+        with col_pr2:
+            # Channel profitability: manufacturer revenue per channel
+            # Shows the margin advantage of online over time
+            fig_ch_profit = go.Figure()
+            fig_ch_profit.add_trace(go.Bar(
+                x=df["month"], y=df["ch_apotheke_revenue"],
+                name="Stationaer (Marge 52%)", marker_color=BLUE,
+            ))
+            fig_ch_profit.add_trace(go.Bar(
+                x=df["month"], y=df["ch_online_revenue"],
+                name="Online (Marge 60%)", marker_color=TEAL,
+            ))
+            fig_ch_profit.update_layout(
+                barmode="group",
+                title="Herstellerumsatz nach Kanal",
+                xaxis_title="Monate", yaxis_title="EUR",
+                height=400,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            )
+            st.plotly_chart(fig_ch_profit, width="stretch")
+
+        # Row 2: Cumulative + Monthly profit
+        col_pr3, col_pr4 = st.columns(2)
+
+        with col_pr3:
+            fig_cum = go.Figure()
+            fig_cum.add_trace(go.Scatter(
+                x=df["month"], y=df["cumulative_total_revenue"],
+                name="Kum. Umsatz", line=dict(color=BLUE, width=2.5),
+            ))
+            fig_cum.add_trace(go.Scatter(
+                x=df["month"], y=df["cumulative_profit"],
+                name="Kum. Gewinn", line=dict(color=GREEN, width=2.5),
+            ))
+            fig_cum.add_trace(go.Scatter(
+                x=df["month"], y=df["cumulative_marketing"],
+                name="Kum. Marketing", line=dict(color=RED, width=1.5, dash="dot"),
+            ))
+            fig_cum.update_layout(
+                title="Kumulierter Umsatz, Gewinn & Marketing",
+                xaxis_title="Monate", yaxis_title="EUR", height=400,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            )
+            st.plotly_chart(fig_cum, width="stretch")
+
+        with col_pr4:
+            fig_profit = go.Figure()
+            fig_profit.add_trace(go.Bar(
+                x=df["month"], y=df["operating_profit"],
+                name="Operativer Gewinn",
+                marker_color=[GREEN if v >= 0 else RED for v in df["operating_profit"]],
+            ))
+            fig_profit.update_layout(
+                title="Monatlicher operativer Gewinn",
+                xaxis_title="Monate", yaxis_title="EUR", height=400,
+            )
+            st.plotly_chart(fig_profit, width="stretch")
 
     # ===================================================================
     # SCENARIO COMPARISON
