@@ -90,8 +90,10 @@ class SildenafilOtcParams:
     rx_price_brand: float = 11.19          # Viagra brand per tablet (50mg)
     rx_price_generic: float = 1.50         # average generic per tablet
     rx_brand_share: float = 0.10           # Viagra brand % of sildenafil volume
-    rx_decline_rate: float = 0.08          # surprisingly low: UK showed Rx INCREASED
-    rx_decline_months: int = 36            # slow decline (some patients prefer Rx relationship)
+    # Note: rx_decline is no longer an independent parameter.
+    # It is DERIVED from otc_from_rx_migration (= otc_tablets * (1 - new_patient_share)).
+    # This ensures consistency: tablets that migrate from Rx to OTC are subtracted
+    # from rx_tablets, not modeled via a separate exponential curve.
 
     # --- OTC channel --------------------------------------------
     otc_price_per_tablet: float = 5.99     # Viagra Connect OTC per tablet
@@ -241,19 +243,6 @@ def forecast_sildenafil_otc(
         season_idx = (m - 1) % 12
         season_factor = params.seasonality[season_idx]
 
-        # --- Rx Channel ----------------------------------------
-        rx_tablets = _rx_effect(
-            m, params.rx_tablets_per_month,
-            params.rx_decline_rate, params.rx_decline_months
-        )
-        rx_tablets *= season_factor  # Rx also has seasonal patterns (Valentine's, summer)
-        # Weighted average Rx price per tablet
-        rx_avg_price = (
-            params.rx_brand_share * params.rx_price_brand +
-            (1 - params.rx_brand_share) * params.rx_price_generic
-        )
-        rx_revenue = rx_tablets * rx_avg_price
-
         # --- OTC Volume (total, in tablets) --------------------
         otc_base = _otc_ramp(m, params.otc_peak_tablets_per_month, params.otc_ramp_months)
         otc_seasonal = otc_base * season_factor
@@ -270,6 +259,24 @@ def forecast_sildenafil_otc(
             6.0 / params.tadalafil_migration_months
         )
         otc_total_tablets += tada_migration
+
+        # --- Volume decomposition (needed before Rx calc) ------
+        otc_total_tablets_pre = round(otc_total_tablets)
+        otc_from_tadalafil_pre = round(min(tada_migration, otc_total_tablets_pre))
+        otc_excl_tada_pre = otc_total_tablets_pre - otc_from_tadalafil_pre
+        otc_from_rx_migration_pre = otc_excl_tada_pre - round(otc_excl_tada_pre * params.new_patient_share)
+
+        # --- Rx Channel ----------------------------------------
+        # Rx tablets: baseline MINUS those that migrated to OTC.
+        # This ensures consistency — tablets can't be in both pools.
+        rx_tablets_base = max(0.0, params.rx_tablets_per_month - otc_from_rx_migration_pre)
+        rx_tablets = rx_tablets_base * season_factor
+        # Weighted average Rx price per tablet
+        rx_avg_price = (
+            params.rx_brand_share * params.rx_price_brand +
+            (1 - params.rx_brand_share) * params.rx_price_generic
+        )
+        rx_revenue = rx_tablets * rx_avg_price
 
         # --- Omnichannel distribution --------------------------
         # Calculate share for each channel with time evolution
@@ -336,16 +343,12 @@ def forecast_sildenafil_otc(
         total_otc_manufacturer_revenue += brand_rev_bonus * avg_mfr_pct
         total_otc_retail_revenue += brand_rev_bonus
 
-        # --- Volume decomposition ------------------------------
-        # Tadalafil migration is a known absolute volume; allocate the
-        # remainder between new patients and Rx migration using the
-        # new_patient_share ratio so the parts always sum to total.
-        otc_from_tadalafil = round(min(tada_migration, otc_total_tablets_adj))
-        otc_excl_tada = otc_total_tablets_adj - otc_from_tadalafil
-        otc_from_new_patients = round(otc_excl_tada * params.new_patient_share)
-        otc_from_rx_migration = otc_excl_tada - otc_from_new_patients  # ensures sum == total
+        # --- Volume decomposition (final, uses same values as pre-calc) ---
+        otc_from_tadalafil = otc_from_tadalafil_pre
+        otc_from_new_patients = round(otc_excl_tada_pre * params.new_patient_share)
+        otc_from_rx_migration = otc_excl_tada_pre - otc_from_new_patients
 
-        # --- Total tablets -------------------------------------
+        # --- Total tablets (no double-counting) ----------------
         total_tablets = rx_tablets + otc_total_tablets_adj
 
         # --- Marketing (cost only, no volume effect) -----------

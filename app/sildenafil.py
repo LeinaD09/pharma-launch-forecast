@@ -103,18 +103,18 @@ def show():
         # OTC: 350K packs x 6 = 2.1M tablets; Rx: 217K packs x 4 = 868K tablets
         if scenario == "Optimistisch (BMG erzwingt Switch)":
             _d = dict(otc_peak=2_700_000, otc_ramp=12, mktg=750_000,
-                      new_patient=70, rx_decline=5, brand_share=35)
+                      new_patient=70, brand_share=35)
         elif scenario == "Konservativ (SVA-Auflagen)":
             _d = dict(otc_peak=1_200_000, otc_ramp=24, mktg=300_000,
-                      new_patient=55, rx_decline=12, brand_share=20)
+                      new_patient=55, brand_share=20)
         else:  # Base Case
             _d = dict(otc_peak=2_100_000, otc_ramp=18, mktg=500_000,
-                      new_patient=63, rx_decline=8, brand_share=25)
+                      new_patient=63, brand_share=25)
 
         # Reset scenario-dependent slider keys when scenario changes.
         _prev = st.session_state.get("_sil_prev_scenario")
         if _prev is not None and _prev != scenario:
-            for _k in ["sil_rx_dec", "sil_otc_peak", "sil_otc_ramp",
+            for _k in ["sil_otc_peak", "sil_otc_ramp",
                         "sil_np", "sil_brand"]:
                 st.session_state.pop(_k, None)
             st.session_state["_sil_prev_scenario"] = scenario
@@ -128,7 +128,7 @@ def show():
             rx_price_brand = st.number_input("Viagra Preis/Tabl. (EUR)", 5.0, 25.0, 11.19, 0.5, key="sil_rx_brand")
             rx_price_generic = st.number_input("Generika Preis/Tabl. (EUR)", 0.50, 5.0, 1.50, 0.1, key="sil_rx_gen")
             rx_brand_share = st.slider("Viagra Markenanteil Rx (%)", 2, 25, 10, key="sil_rx_bs") / 100
-            rx_decline = st.slider("Rx-Rueckgang durch OTC (%)", 0, 30, _d["rx_decline"], key="sil_rx_dec") / 100
+            st.caption("*Rx-Rueckgang wird automatisch aus OTC-Rx-Migration berechnet*")
 
         with st.expander("OTC-Markt", expanded=False):
             otc_price = st.number_input("OTC Preis/Tablette (EUR)", 2.0, 15.0, 5.99, 0.5, key="sil_otc_p")
@@ -167,7 +167,6 @@ def show():
         rx_price_brand=rx_price_brand,
         rx_price_generic=rx_price_generic,
         rx_brand_share=rx_brand_share,
-        rx_decline_rate=rx_decline,
         otc_price_per_tablet=otc_price,
         otc_peak_tablets_per_month=otc_peak,
         otc_ramp_months=otc_ramp,
@@ -525,11 +524,11 @@ def show():
     scenarios = {
         "Konservativ": {"otc_peak_tablets_per_month": 1_200_000, "otc_ramp_months": 24,
                         "marketing_monthly_eur": 300_000, "new_patient_share": 0.55,
-                        "rx_decline_rate": 0.12, "brand_otc_share": 0.20},
+                        "brand_otc_share": 0.20},
         "Base Case": {},
         "Optimistisch": {"otc_peak_tablets_per_month": 2_700_000, "otc_ramp_months": 12,
                          "marketing_monthly_eur": 750_000, "new_patient_share": 0.70,
-                         "rx_decline_rate": 0.05, "brand_otc_share": 0.35},
+                         "brand_otc_share": 0.35},
     }
 
     comp_rows = []

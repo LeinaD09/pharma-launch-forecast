@@ -399,11 +399,11 @@ def build_model():
     for sn, sp in [
         ("Konservativ", {"otc_peak_tablets_per_month": 1_200_000, "otc_ramp_months": 24,
                          "marketing_monthly_eur": 300_000, "new_patient_share": 0.55,
-                         "rx_decline_rate": 0.12, "brand_otc_share": 0.20}),
+                         "brand_otc_share": 0.20}),
         ("Base Case", {}),
         ("Optimistisch", {"otc_peak_tablets_per_month": 2_700_000, "otc_ramp_months": 12,
                           "marketing_monthly_eur": 750_000, "new_patient_share": 0.70,
-                          "rx_decline_rate": 0.05, "brand_otc_share": 0.35}),
+                          "brand_otc_share": 0.35}),
     ]:
         p = SildenafilOtcParams(**sp)
         scenario_results[sn] = calculate_kpis_sildenafil(forecast_sildenafil_otc(p))
