@@ -38,8 +38,8 @@ def show():
 
     st.markdown("""
     <style>
-        .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; }
-        .kpi-row { display: flex; gap: 8px; margin-bottom: 6px; }
+        .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; padding-left: 1rem !important; padding-right: 1rem !important; max-width: 100% !important; }
+        .kpi-row { display: flex; gap: 8px; margin-bottom: 6px; width: 100%; box-sizing: border-box; }
         .kpi-card, .kpi-card-teal, .kpi-card-amber,
         .kpi-card-green, .kpi-card-red, .kpi-card-purple {
             background: #ffffff;
