@@ -149,6 +149,16 @@ class SildenafilPatientParams:
     # --- Costs -------------------------------------------------
     cogs_pct: float = 0.12
 
+    # --- Discretion effect (stigma-driven channel shift) -------
+    # ED is a stigma category: 36% of patients cite discretion as key
+    # factor (PMC/Kantar 2020). Online channels benefit from anonymity.
+    # discretion_baseline: the discretion_factor at which there is NO bonus
+    #   (= stationary pharmacy default: face-to-face consultation).
+    # discretion_sensitivity: how strongly discretion shifts channel mix
+    #   (0.15 = each 0.1 above baseline shifts ~1.5% share toward channel).
+    discretion_baseline: float = 0.70
+    discretion_sensitivity: float = 0.15
+
     # --- Forecast ----------------------------------------------
     forecast_months: int = 60
 
@@ -270,8 +280,8 @@ def forecast_sildenafil_patient(
         price_vol_effect = 1.0 + (price_change * params.price_elasticity)
         otc_total_tablets = max(0, otc_seasonal * price_vol_effect)
 
-        # Tadalafil migration tablets
-        tada_tablets = tada_migration_patients * params.tadalafil_tablets_per_patient
+        # Tadalafil migration tablets (subject to same seasonality)
+        tada_tablets = tada_migration_patients * params.tadalafil_tablets_per_patient * season_factor
         otc_total_tablets += tada_tablets
 
         # Rx tablets
@@ -296,10 +306,10 @@ def forecast_sildenafil_patient(
         share_sum = sum(raw_shares)
         norm_shares = [s / share_sum for s in raw_shares] if share_sum > 0 else raw_shares
 
-        # Discretion bonus (shifts mix, not total)
+        # Discretion bonus (shifts mix toward anonymous channels, not total volume)
         weighted_shares = []
         for i, ch in enumerate(params.channels):
-            discretion_bonus = 1.0 + (ch.discretion_factor - 0.7) * 0.15
+            discretion_bonus = 1.0 + (ch.discretion_factor - params.discretion_baseline) * params.discretion_sensitivity
             weighted_shares.append(norm_shares[i] * discretion_bonus)
         ws_sum = sum(weighted_shares)
         disc_shares = [s / ws_sum for s in weighted_shares] if ws_sum > 0 else norm_shares

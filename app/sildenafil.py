@@ -588,8 +588,9 @@ def show():
     }
 
     comp_rows = []
+    from dataclasses import replace as _dc_replace
     for sn, overrides in scenarios.items():
-        p = SildenafilOtcParams(**overrides)
+        p = _dc_replace(params, **overrides) if overrides else params
         k = calculate_kpis_sildenafil(forecast_sildenafil_otc(p))
         comp_rows.append({
             "Szenario": sn,
