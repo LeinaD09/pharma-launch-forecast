@@ -613,11 +613,11 @@ def show():
             fig_rxotc_gp = go.Figure()
             fig_rxotc_gp.add_trace(go.Bar(
                 x=df["month"], y=df["rx_gross_profit"],
-                name="Rx Bruttomarge", marker_color="#93c5fd",
+                name="Rx Bruttogewinn", marker_color="#93c5fd",
             ))
             fig_rxotc_gp.add_trace(go.Bar(
                 x=df["month"], y=df["otc_gross_profit"],
-                name="OTC Bruttomarge", marker_color="#5eead4",
+                name="OTC Bruttogewinn", marker_color="#5eead4",
             ))
             co_rev = kpis.get("crossover_month")
             if co_rev:
@@ -627,7 +627,7 @@ def show():
                 )
             fig_rxotc_gp.update_layout(
                 barmode="group",
-                title="Bruttomarge: Rx vs. OTC (nach COGS)",
+                title="Bruttogewinn: Rx vs. OTC (nach COGS)",
                 xaxis_title="Monate", yaxis_title="EUR",
                 height=400,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
