@@ -264,7 +264,7 @@ def show():
                                          help="Mein Anteil an allen Apixaban-Generika (nicht am NOAK-Gesamtmarkt)")
                 months_to_peak = st.slider("Mon. bis Peak", 6, 36, 18, 3)
 
-            with st.expander("Kosten", expanded=False):
+            with st.expander("Meine Kosten", expanded=False):
                 cogs_pct = st.slider("COGS (%)", 10, 50, 25, 5)
                 sga_monthly = st.number_input("SG&A / Monat (\u20ac)", 50_000, 500_000, 150_000, 25_000)
                 launch_invest = st.number_input("Launch-Invest (\u20ac)", 0, 2_000_000, 500_000, 100_000)
