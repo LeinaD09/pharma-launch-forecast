@@ -228,8 +228,8 @@ def show():
     </div>
     <div class="kpi-row">
         <div class="kpi-card-purple">
-            <div class="kpi-label">Online-Anteil M24</div>
-            <div class="kpi-value">{kpis['online_share_m24']:.0%}</div>
+            <div class="kpi-label">Online-Anteil M12</div>
+            <div class="kpi-value">{kpis['online_share_m12']:.0%}</div>
             <div class="kpi-sublabel">Online-Apotheke</div>
         </div>
         <div class="kpi-card">
@@ -541,7 +541,7 @@ def show():
             "OTC Umsatz J1": f"EUR {k['year1_otc_revenue']/1e6:.0f}M",
             "Gesamt 5J": f"EUR {k['total_5y_revenue']/1e6:.0f}M",
             "Gewinn 5J": f"EUR {k['total_5y_profit']/1e6:.0f}M",
-            "Online M24": f"{k['online_share_m24']:.0%}",
+            "Online M12": f"{k['online_share_m12']:.0%}",
             "Marke M12": f"{k['brand_share_m12']:.0%}",
             "Crossover (Umsatz)": f"M{k['crossover_month']}" if k['crossover_month'] else "–",
             "Crossover (Tabl.)": f"M{k['crossover_month_tablets']}" if k['crossover_month_tablets'] else "–",

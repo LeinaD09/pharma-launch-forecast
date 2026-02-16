@@ -313,7 +313,7 @@ def build_model():
         ("OTC Umsatz Jahr 1", kpis["year1_otc_revenue"], "kpi_value"),
         ("Gesamtumsatz 5J", kpis["total_5y_revenue"], "kpi_value"),
         ("Gewinn 5J", kpis["total_5y_profit"], "kpi_value"),
-        ("Online-Anteil M24", kpis["online_share_m24"], "kpi_value_pct"),
+        ("Online-Anteil M12", kpis["online_share_m12"], "kpi_value_pct"),
         ("OTC > Rx ab", co_text, "kpi_value_plain"),
     ]
     for c, (label, value, vfmt) in enumerate(kpi_data):
@@ -423,7 +423,7 @@ def build_model():
         ("OTC-Anteil M12 (Tabletten)", "otc_share_m12", "pct"),
         ("OTC-Anteil M24 (Tabletten)", "otc_share_m24", "pct"),
         ("Viagra Markenanteil M12", "brand_share_m12", "pct"),
-        ("Online-Anteil M24", "online_share_m24", "pct"),
+        ("Online-Anteil M12", "online_share_m12", "pct"),
         ("Rx-Rueckgang gesamt", "rx_decline_total", "pct"),
         ("Therapiequote (neu)", "treatment_rate_final", "pct"),
         ("Marketing-Invest 5J", "total_5y_marketing", "eur"),
