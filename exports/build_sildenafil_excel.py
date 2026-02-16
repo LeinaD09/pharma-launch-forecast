@@ -310,8 +310,8 @@ def build_model():
     co = kpis.get("crossover_month")
     co_text = f"Monat {co}" if co else "–"
     kpi_data = [
-        ("OTC Umsatz Jahr 1", kpis["year1_otc_revenue"], "kpi_value"),
-        ("Gesamtumsatz 5J", kpis["total_5y_revenue"], "kpi_value"),
+        ("OTC Umsatz M12", kpis["year1_otc_revenue"], "kpi_value"),
+        ("Gesamtumsatz M12", kpis["year1_total_revenue"], "kpi_value"),
         ("Gewinn 5J", kpis["total_5y_profit"], "kpi_value"),
         ("Online-Anteil M12", kpis["online_share_m12"], "kpi_value_pct"),
         ("OTC > Rx ab", co_text, "kpi_value_plain"),
@@ -415,8 +415,8 @@ def build_model():
     ws5.write(row, 4, "Optimistisch", fmt["th"])
 
     for label, key, vtype in [
-        ("OTC Umsatz Jahr 1", "year1_otc_revenue", "eur"),
-        ("Gesamtumsatz 5J (Rx+OTC)", "total_5y_revenue", "eur"),
+        ("OTC Umsatz M12", "year1_otc_revenue", "eur"),
+        ("Gesamtumsatz M12 (Rx+OTC)", "year1_total_revenue", "eur"),
         ("OTC Umsatz 5J", "total_5y_otc_revenue", "eur"),
         ("Rx Umsatz 5J", "total_5y_rx_revenue", "eur"),
         ("Gewinn 5J", "total_5y_profit", "eur"),

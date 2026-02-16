@@ -206,13 +206,13 @@ def show():
     st.markdown(f"""
     <div class="kpi-row">
         <div class="kpi-card-teal">
-            <div class="kpi-label">OTC Umsatz J1</div>
+            <div class="kpi-label">OTC Umsatz M12</div>
             <div class="kpi-value">EUR {kpis['year1_otc_revenue']/1e6:.1f}M</div>
             <div class="kpi-sublabel">Herstellerumsatz</div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-label">Gesamtumsatz 5J</div>
-            <div class="kpi-value">EUR {kpis['total_5y_revenue']/1e6:.0f}M</div>
+            <div class="kpi-label">Gesamtumsatz M12</div>
+            <div class="kpi-value">EUR {kpis['year1_total_revenue']/1e6:.1f}M</div>
             <div class="kpi-sublabel">Rx + OTC kumuliert</div>
         </div>
         <div class="kpi-card-amber">
@@ -257,8 +257,8 @@ def show():
     # ===================================================================
 
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "Rx vs. OTC", "Apothekenverteilung", "Brand vs. Generika",
-        "Treatment Gap", "Profitabilitaet"
+        "Rx vs. OTC", "Stationär vs. Online", "Marke vs. Generika",
+        "Patienten-Zuwachs", "Profitabilitaet"
     ])
 
     # --- Chart 1: Rx vs OTC tablets + revenue -------------------------
@@ -410,7 +410,9 @@ def show():
             )
             st.plotly_chart(fig3b, width="stretch")
 
-        # Volume decomposition
+    # --- Chart 4: Patienten-Zuwachs ------------------------------------
+    with tab4:
+        # Volume decomposition (patient origin)
         fig3c = go.Figure()
         fig3c.add_trace(go.Scatter(
             x=df["month"], y=df["otc_from_new_patients"],
@@ -435,8 +437,6 @@ def show():
         )
         st.plotly_chart(fig3c, width="stretch")
 
-    # --- Chart 4: Treatment Gap ---------------------------------------
-    with tab4:
         treated_monthly = df["treatment_rate_effective"] * params.ed_prevalence_men
         untreated_monthly = params.ed_prevalence_men - treated_monthly
 
@@ -538,8 +538,8 @@ def show():
         k = calculate_kpis_sildenafil(forecast_sildenafil_otc(p))
         comp_rows.append({
             "Szenario": sn,
-            "OTC Umsatz J1": f"EUR {k['year1_otc_revenue']/1e6:.0f}M",
-            "Gesamt 5J": f"EUR {k['total_5y_revenue']/1e6:.0f}M",
+            "OTC Umsatz M12": f"EUR {k['year1_otc_revenue']/1e6:.0f}M",
+            "Gesamt M12": f"EUR {k['year1_total_revenue']/1e6:.0f}M",
             "Gewinn 5J": f"EUR {k['total_5y_profit']/1e6:.0f}M",
             "Online M12": f"{k['online_share_m12']:.0%}",
             "Marke M12": f"{k['brand_share_m12']:.0%}",
