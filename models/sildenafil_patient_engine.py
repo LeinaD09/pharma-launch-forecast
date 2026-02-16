@@ -364,7 +364,11 @@ def forecast_sildenafil_patient(
             marketing_spend *= params.marketing_maintenance_factor
 
         total_revenue = rx_revenue + total_otc_manufacturer_revenue
-        cogs = total_revenue * params.cogs_pct
+        rx_cogs = rx_revenue * params.cogs_pct
+        otc_cogs = total_otc_manufacturer_revenue * params.cogs_pct
+        rx_gross_profit = rx_revenue - rx_cogs
+        otc_gross_profit = total_otc_manufacturer_revenue - otc_cogs
+        cogs = rx_cogs + otc_cogs
         gross_profit = total_revenue - cogs
         operating_profit = gross_profit - marketing_spend
 
@@ -435,6 +439,8 @@ def forecast_sildenafil_patient(
             "season_factor": season_factor,
 
             # Profitability
+            "rx_gross_profit": round(rx_gross_profit),
+            "otc_gross_profit": round(otc_gross_profit),
             "cogs": round(cogs),
             "marketing_spend": round(marketing_spend),
             "gross_profit": round(gross_profit),

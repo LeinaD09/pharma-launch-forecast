@@ -610,29 +610,29 @@ def show():
         col_pr1, col_pr2 = st.columns(2)
 
         with col_pr1:
-            fig_rxotc_rev = go.Figure()
-            fig_rxotc_rev.add_trace(go.Bar(
-                x=df["month"], y=df["rx_revenue"],
-                name="Rx Umsatz", marker_color="#93c5fd",
+            fig_rxotc_gp = go.Figure()
+            fig_rxotc_gp.add_trace(go.Bar(
+                x=df["month"], y=df["rx_gross_profit"],
+                name="Rx Bruttomarge", marker_color="#93c5fd",
             ))
-            fig_rxotc_rev.add_trace(go.Bar(
-                x=df["month"], y=df["otc_manufacturer_revenue"],
-                name="OTC Umsatz (Hersteller)", marker_color="#5eead4",
+            fig_rxotc_gp.add_trace(go.Bar(
+                x=df["month"], y=df["otc_gross_profit"],
+                name="OTC Bruttomarge", marker_color="#5eead4",
             ))
             co_rev = kpis.get("crossover_month")
             if co_rev:
-                fig_rxotc_rev.add_vline(
+                fig_rxotc_gp.add_vline(
                     x=co_rev, line_dash="dot", line_color=AMBER,
                     annotation_text=f"OTC > Rx (M{co_rev})",
                 )
-            fig_rxotc_rev.update_layout(
+            fig_rxotc_gp.update_layout(
                 barmode="stack",
-                title="Herstellerumsatz: Rx vs. OTC",
+                title="Bruttomarge: Rx vs. OTC (nach COGS)",
                 xaxis_title="Monate", yaxis_title="EUR",
                 height=400,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02),
             )
-            st.plotly_chart(fig_rxotc_rev, width="stretch")
+            st.plotly_chart(fig_rxotc_gp, width="stretch")
 
         with col_pr2:
             # Channel profitability: manufacturer revenue per channel
