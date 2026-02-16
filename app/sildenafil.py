@@ -187,9 +187,12 @@ def show():
     # ===================================================================
     # HEADER
     # ===================================================================
-    st.markdown(f"## Sildenafil Rx-to-OTC Switch Forecast")
-    st.markdown(f"*Viatris / Viagra Connect – Szenario: **{scenario}** | "
-                f"Dual-Channel Apotheken-Modell (apothekenpflichtig)*")
+    st.markdown("")
+    st.markdown(f"#### Sildenafil Rx-to-OTC Switch Forecast")
+    st.markdown(f"<span style='font-size:13px;color:#64748b;'>"
+                f"Viatris / Viagra Connect – Szenario: <b>{scenario}</b> | "
+                f"Dual-Channel Apotheken-Modell (apothekenpflichtig)</span>",
+                unsafe_allow_html=True)
 
     # ===================================================================
     # KPI CARDS (Row 1 + 2) — rendered as pure HTML flexbox
