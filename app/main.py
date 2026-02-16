@@ -342,8 +342,6 @@ def show():
         st.markdown(
             '<div class="perspective-header originator-header">'
             '\U0001f3e2 Modell 1: Perspektive: Original-Anbieter \u2013 Revenue at Risk'
-            ' &nbsp;<span style="background:#fbbf24;color:#78350f;padding:2px 8px;'
-            'border-radius:4px;font-size:11px;font-weight:600;">UNDER CONSTRUCTION</span>'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -524,8 +522,6 @@ def show():
         st.markdown(
             '<div class="perspective-header generic-header">'
             '\U0001f48a Modell 2: Perspektive: Generika-Anbieter \u2013 Market Opportunity'
-            ' &nbsp;<span style="background:#fbbf24;color:#78350f;padding:2px 8px;'
-            'border-radius:4px;font-size:11px;font-weight:600;">UNDER CONSTRUCTION</span>'
             '</div>',
             unsafe_allow_html=True,
         )

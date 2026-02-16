@@ -134,13 +134,16 @@ def build_model():
     # 3. Generika
     row += 2
     ws.merge_range(row, 1, row, 3, "3. GENERIKA-PARAMETER (Market Opportunity)", fmt["section"])
+    row += 1
+    ws.merge_range(row, 1, row, 3, "Markt-Kaskade: NOAK -> Apixaban (42%) -> Generika-Segment (55%) -> Mein Anteil (20%)", fmt["hint"])
     for label, value, fk, hint in [
-        ("Firmenname", "Mein Unternehmen", "input_text", "Name des Generika-Anbieters"),
-        ("Produktname", "Apixaban [Firma]", "input_text", "Name des Generikums"),
+        ("Apixaban-Marktanteil am NOAK-Markt", 0.42, "input_pct", "Anteil von Apixaban (Eliquis) am NOAK-Gesamtmarkt"),
+        ("Generika-Segment Peak-Anteil", 0.55, "input_pct", "Anteil der Apixaban-Verordnungen, die generisch werden"),
+        ("Monate bis Generika-Segment Peak", 24, "input", "Monate nach LOE bis Generika-Segment seinen Peak erreicht"),
         ("Launch-Zeitpunkt (Monate nach LOE)", 0, "input", "0 = Day-1 Launch"),
         ("Preis-Discount vs. Originator", 0.45, "input_pct", "Preisabschlag zum Originator-Preis"),
-        ("Ziel Peak-Marktanteil (Gesamtmarkt)", 0.10, "input_pct", "Angestrebter Anteil am gesamten NOAK-Markt"),
-        ("Monate bis Peak Share", 18, "input", "Monate bis Ziel-Marktanteil erreicht"),
+        ("Mein Anteil am Generika-Segment", 0.20, "input_pct", "Mein Anteil an allen Apixaban-Generika (nicht am NOAK-Gesamtmarkt)"),
+        ("Monate bis Peak Share", 18, "input", "Monate bis mein Anteil am Generika-Segment den Peak erreicht"),
     ]:
         row += 1
         write_input_row(ws, row, label, value, fk, hint)
@@ -154,8 +157,7 @@ def build_model():
         ("Aut-idem aktiv?", "JA", "input_bool", "JA oder NEIN - Wird Festbetragsgruppe gebildet?"),
         ("Anlaufzeit Festbetrag (Monate nach LOE)", 6, "input", "G-BA Festbetragsentscheid dauert ca. 3-6 Monate"),
         ("Volle Aut-idem-Quote nach (Monate)", 12, "input", "Monate bis Apotheken voll substituieren"),
-        ("Peak Aut-idem-Quote", 0.75, "input_pct", "Max. Anteil der Rx, die substituiert werden"),
-        ("Mein Anteil an Aut-idem-Substitutionen", 0.30, "input_pct", "Welchen Anteil der Substitutionen bekomme ich?"),
+        ("Peak Aut-idem-Quote", 0.75, "input_pct", "Max. Anteil der Rx, die substituiert werden (Nicht-Tender-Rest)"),
     ]:
         row += 1
         write_input_row(ws, row, label, value, fk, hint)
@@ -177,54 +179,52 @@ def build_model():
 
     # 5. TENDER / RABATTVERTRAEGE
     row += 2
-    ws.merge_range(row, 1, row, 3, "5. RABATTVERTRAEGE & TENDER", fmt["section"])
+    ws.merge_range(row, 1, row, 3, "5. MEINE RABATTVERTRAEGE", fmt["section"])
+    row += 1
+    ws.merge_range(row, 1, row, 3, "Deterministisches Modell: Pro Kasse gewonnen/verloren. Risiko als Szenario-Band (Bear/Base/Bull).", fmt["hint"])
     for label, value, fk, hint in [
         ("Rabattvertraege anstreben?", "JA", "input_bool", "JA oder NEIN"),
         ("Anlaufzeit Tender (Monate nach Launch)", 3, "input", "Bis erste Ausschreibung gewonnen"),
-        ("Tender-Vertragslaufzeit (Monate)", 24, "input", "Typische Laufzeit Rabattvertrag"),
+        ("Mein Anteil bei Mehrfachvergabe", 0.50, "input_pct", "z.B. 50% bei 2 Hauptpartnern pro Kasse"),
     ]:
         row += 1
         write_input_row(ws, row, label, value, fk, hint)
 
-    # Krankenkassen-Tabelle (erweitert)
+    # Krankenkassen-Tabelle (deterministisch)
     row += 2
-    ws.merge_range(row, 1, row, 5, "Ziel-Krankenkassen fuer Rabattvertraege", fmt["subsection"])
+    ws.merge_range(row, 1, row, 5, "Kassen - Rabattvertrag gewonnen/verloren (Base Case)", fmt["subsection"])
     row += 1
-    kk_headers = ["Krankenkasse", "Versicherte\n(Mio.)", "Marktanteil\nGKV", "Gewinn-\nwahrsch.", "Prioritaet"]
+    kk_headers = ["Krankenkasse", "Versicherte\n(Mio.)", "Marktanteil\nGKV", "Gewonnen?\n(Base)", "Status"]
     for c, h in enumerate(kk_headers):
         ws.write(row, 1 + c, h, fmt["th"])
     ws.set_row(row, 30)
 
     kassen = [
-        ("TK (Techniker)", 11.5, 0.158, 0.50, "Hoch"),
-        ("BARMER", 8.7, 0.119, 0.40, "Hoch"),
-        ("DAK-Gesundheit", 5.5, 0.075, 0.45, "Hoch"),
-        ("AOK Bayern", 4.6, 0.063, 0.30, "Mittel"),
-        ("AOK Baden-Wuerttemberg", 4.5, 0.062, 0.30, "Mittel"),
-        ("AOK Nordwest", 3.0, 0.041, 0.35, "Mittel"),
-        ("AOK Rheinland/Hamburg", 2.9, 0.040, 0.35, "Mittel"),
-        ("IKK classic", 3.0, 0.041, 0.25, "Nachrangig"),
-        ("KKH", 1.5, 0.021, 0.20, "Nachrangig"),
-        ("hkk", 0.9, 0.012, 0.20, "Nachrangig"),
+        ("TK (Techniker)", 11.5, 0.158, "JA", "Ziel"),
+        ("BARMER", 8.7, 0.119, "JA", "Ziel"),
+        ("DAK-Gesundheit", 5.5, 0.075, "JA", "Ziel"),
+        ("AOK Bayern", 4.6, 0.063, "NEIN", "Optional"),
+        ("AOK Baden-Wuerttemberg", 4.5, 0.062, "NEIN", "Optional"),
+        ("Restl. Kassen", 26.8, 0.368, "NEIN", "Nachrangig"),
     ]
-    for name, vers, anteil, win_prob, prio in kassen:
+    for name, vers, anteil, won, status in kassen:
         row += 1
         ws.write(row, 1, name, fmt["input_text"])
         ws.write(row, 2, vers, fmt["input"])
         ws.write(row, 3, anteil, fmt["input_pct"])
-        ws.write(row, 4, win_prob, fmt["input_pct"])
-        ws.write(row, 5, prio, fmt["input_bool"])
+        ws.write(row, 4, won, fmt["input_bool"])
+        ws.write(row, 5, status, fmt["input_bool"])
 
     # Tender explainer
     row += 1
     ws.merge_range(row, 1, row, 5, "Rabattvertrag-Mechanik", fmt["subsection"])
     tender_chain = [
-        "1. Krankenkasse schreibt Wirkstoff aus (Open-House oder Exklusiv)",
+        "1. Krankenkasse schreibt Wirkstoff aus (Open-House oder Mehrfachvergabe)",
         "2. Generika-Anbieter geben Angebot ab (Preis pro DDD/Packung)",
-        "3. Zuschlag: Guenstigster Anbieter gewinnt -> Exklusivvertrag",
-        "4. Apotheke MUSS Produkt des Vertragpartners abgeben (Par.130a SGB V)",
-        "5. Volumen-Garantie: Alle Versicherten der Kasse = gesichertes Volumen",
-        "6. Laufzeit typisch 24 Monate, danach Neuausschreibung",
+        "3. Zuschlag: Mehrere Anbieter erhalten Vertrag (Versorgungssicherheit)",
+        "4. Apotheke MUSS Produkt eines Vertragspartners abgeben (Par.130a SGB V)",
+        "5. Aut-idem-Ausschluss durch Arzt hat Vorrang und verhindert Tender-Substitution",
+        "6. Modellierung: Deterministisch (gewonnen/verloren) + Szenario-Band fuer Risiko",
     ]
     for step in tender_chain:
         row += 1
@@ -253,18 +253,22 @@ def build_model():
         ("Erosions-Geschwindigkeit", 0.7, 1.0, 1.3),
         ("Originator Boden-Share", 0.18, 0.12, 0.08),
         ("Aut-idem Peak-Quote", 0.60, 0.75, 0.85),
-        ("Mein Peak Share", 0.06, 0.10, 0.15),
-        ("Generika gesamt Peak Share", 0.40, 0.55, 0.65),
+        ("Mein Anteil am Generika-Segment", 0.10, 0.20, 0.30),
+        ("Generika-Segment Peak Share", 0.40, 0.55, 0.65),
         ("Mein Preis-Discount", 0.35, 0.45, 0.50),
         ("Marktwachstum p.a.", 0.01, 0.02, 0.03),
-        ("Tender-Gewinnquote (Durchschn.)", 0.20, 0.40, 0.60),
-        ("Mein Aut-idem-Anteil", 0.15, 0.30, 0.40),
+        ("Tender", "Kein Tender", "User-Auswahl", "Alle Kassen"),
     ]:
         row += 1
         ws.write(row, 1, param, fmt["label_bold"])
-        ws.write(row, 2, bear, fmt["input_pct"])
-        ws.write(row, 3, base, fmt["input_pct"])
-        ws.write(row, 4, bull, fmt["input_pct"])
+        if isinstance(bear, str):
+            ws.write(row, 2, bear, fmt["input_text"])
+            ws.write(row, 3, base, fmt["input_text"])
+            ws.write(row, 4, bull, fmt["input_text"])
+        else:
+            ws.write(row, 2, bear, fmt["input_pct"])
+            ws.write(row, 3, base, fmt["input_pct"])
+            ws.write(row, 4, bull, fmt["input_pct"])
 
     # ═══════════════════════════════════════════════════════════════════
     # SHEET 2: MARKTDATEN (unchanged from before)
@@ -613,12 +617,15 @@ def build_model():
         ("Erosions-Geschwindigkeit", "1.0", "Erfahrungswert; <1=langsam, >1=schnell. Abhaengig von Festbetrags-Timing", "ANNAHME"),
         ("Originator Boden-Share", "12%", "Markentreue bei Small Molecules: 10-15% typisch", "ANNAHME"),
         ("Originator Preisreduktion", "15%", "Strategische Entscheidung des Originators", "ANNAHME"),
-        ("Peak Marktanteil Generikum", "10%", "Abhaengig von Vertrieb, Tender, Timing", "ANNAHME"),
+        ("Apixaban-Marktanteil", "42%", "Anteil von Apixaban am NOAK-Gesamtmarkt", "ANNAHME"),
+        ("Generika-Segment Peak", "55%", "Anteil der Apixaban-Rx, die generisch werden", "ANNAHME"),
+        ("Mein Anteil am Generika-Segment", "20%", "Marktanteil unter den Apixaban-Generika", "ANNAHME"),
         ("Monate bis Peak", "18", "S-Kurven-Annahme, historisch validierbar", "ANNAHME"),
         ("Preis-Discount", "45%", "Marktueblich DE: 30-60% fuer Generika", "ANNAHME"),
         ("Aut-idem Peak-Quote", "75%", "Abhaengig von Arzt-Akzeptanz und Festbetrag", "ANNAHME"),
         ("Aut-idem Anlaufzeit", "6 Monate", "G-BA braucht 3-6 Monate fuer Festbetragsgruppe", "ANNAHME"),
-        ("Tender-Gewinnwahrsch.", "20-60%", "Pro Kasse individuell, abhaengig von Preisaggression", "ANNAHME"),
+        ("Tender pro Kasse", "Deterministisch", "Gewonnen/Verloren pro Kasse, Risiko als Szenario-Band", "ANNAHME"),
+        ("Mein Tender-Anteil (Mehrfachvergabe)", "50%", "2 Hauptpartner pro Kasse (Versorgungssicherheit)", "ANNAHME"),
         ("COGS", "25%", "Branchenueblich Small Molecule Generika", "ANNAHME"),
         ("SG&A", "EUR 150K/Monat", "Firmenspezifisch", "ANNAHME"),
         ("AG Anteil-Erosion Speed", "0.5", "AG verliert Anteil an unabh. Generika; 0=statisch, 2=schnell", "ANNAHME"),
@@ -642,8 +649,8 @@ def build_model():
          "Rogers Adoption Curve; Standard bei Launch-Forecasts", "MODELL"),
         ("Aut-idem-Kurve", "Linear Ramp: 0 -> Peak ueber [ramp, full] Monate",
          "Abgeleitet aus G-BA Festbetrags-Timing + Apotheken-Substitutionsverhalten", "MODELL"),
-        ("Tender-Effekt", "Erwartungswert: Sum(Kasse_share * Win_prob) * Ramp * Exklusivitaetsfaktor",
-         "Kein binares Modell; gewichteter Durchschnitt ueber Kassen-Portfolio", "MODELL"),
+        ("Tender-Effekt", "Deterministisch: Sum(gewonnene Kasse_shares) * Ramp * Aut-idem-Rate * My_Share",
+         "Binaer pro Kasse (gewonnen/verloren); Risiko als Szenario-Band (Bear/Base/Bull)", "MODELL"),
         ("Preis-Erosion", "Zusaetzlicher Preisverfall: +0.3%/Monat, Max 15%",
          "Beobachteter Trend in reifen Generika-Maerkten", "MODELL"),
         ("AG Anteil-Erosion", "AG_Share(t) = max(2%, Initial * e^(-speed*0.05*t))",
