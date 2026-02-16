@@ -85,8 +85,6 @@ class SildenafilOtcParams:
     # --- Epidemiology -------------------------------------------
     ed_prevalence_men: int = 5_000_000     # men with moderate-to-complete ED (DE)
     treatment_rate: float = 0.30           # currently treated (May et al. 2007; Arnold 2023)
-    addressable_otc_pct: float = 0.14      # % of untreated who would buy OTC in steady state
-
     # --- Rx channel (pre-switch) --------------------------------
     # 217K packs/month x 4 tablets/pack = 868K tablets/month
     rx_tablets_per_month: int = 868_000    # sildenafil Rx tablets/month
@@ -105,9 +103,7 @@ class SildenafilOtcParams:
     # --- Market expansion (the core thesis) ---------------------
     new_patient_share: float = 0.63        # UK reference: 63% were new-to-therapy
     stigma_reduction_factor: float = 0.40  # OTC removes stigma -> 40% of barrier gone
-    # Treatment gap closure rate (how many untreated men start buying OTC)
-    treatment_gap_closure_rate: float = 0.08  # 8% of untreated switch to OTC over 5 years
-    treatment_gap_ramp_months: int = 60       # months over which gap closure ramps linearly
+    tablets_per_patient_per_month: float = 4.0  # avg tablets/patient/month (for treatment gap calc)
 
     # --- Brand vs. Generic OTC ----------------------------------
     brand_otc_share: float = 0.25          # Viagra Connect vs generic OTC sildenafil
@@ -159,10 +155,6 @@ class SildenafilOtcParams:
     marketing_monthly_eur: float = 500_000   # DTC brand building, cost only (no volume effect)
     marketing_maintenance_factor: float = 0.5  # reduce to 50% after ramp phase
     marketing_ramp_months: int = 18            # full spend for first 18 months, then maintenance
-
-    # --- Consumer funnel ----------------------------------------
-    trial_rate: float = 0.25                 # % of aware men with ED who try OTC
-    repeat_rate: float = 0.65               # higher than PPI: chronic/recurring condition
 
     # --- Costs --------------------------------------------------
     cogs_pct: float = 0.12                   # low COGS for established molecule
@@ -377,12 +369,16 @@ def forecast_sildenafil_otc(
         cum["profit"] += operating_profit
         cum["marketing"] += marketing_spend
 
-        # --- Treatment gap metric ------------------------------
-        untreated = params.ed_prevalence_men * (1 - params.treatment_rate)
-        ramp_frac = min(1.0, m / params.treatment_gap_ramp_months)
-        newly_treated_cumulative = untreated * params.treatment_gap_closure_rate * ramp_frac
+        # --- Treatment gap metric (derived from OTC volume) -----
+        # Derive active new OTC patients from actual volume, not independently.
+        # new_patients_tablets = otc_from_new_patients (tablets this month)
+        # active_new_patients = tablets / tablets_per_patient_per_month
+        if params.tablets_per_patient_per_month > 0:
+            active_new_patients = otc_from_new_patients / params.tablets_per_patient_per_month
+        else:
+            active_new_patients = 0
         treatment_rate_new = params.treatment_rate + (
-            newly_treated_cumulative / params.ed_prevalence_men
+            active_new_patients / params.ed_prevalence_men
         )
 
         rows.append({
@@ -438,9 +434,9 @@ def forecast_sildenafil_otc(
             "cumulative_profit": round(cum["profit"]),
             "cumulative_marketing": round(cum["marketing"]),
 
-            # Treatment gap
+            # Treatment gap (derived from OTC volume)
             "treatment_rate_effective": treatment_rate_new,
-            "newly_treated_cumulative": round(newly_treated_cumulative),
+            "active_new_patients": round(active_new_patients),
         })
 
     return pd.DataFrame(rows)
@@ -498,5 +494,5 @@ def calculate_kpis_sildenafil(df: pd.DataFrame) -> dict:
         "online_share_m12": online_share_m12,
         "online_share_m24": online_share_m24,
         "treatment_rate_final": last["treatment_rate_effective"],
-        "newly_treated_total": last["newly_treated_cumulative"],
+        "peak_new_patients": int(df["active_new_patients"].max()),
     }
