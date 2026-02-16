@@ -87,9 +87,11 @@ class SildenafilOtcParams:
     # --- Rx channel (pre-switch) --------------------------------
     # 217K packs/month x 4 tablets/pack = 868K tablets/month
     rx_tablets_per_month: int = 868_000    # sildenafil Rx tablets/month
-    rx_price_brand: float = 11.19          # Viagra brand per tablet (50mg)
-    rx_price_generic: float = 1.50         # average generic per tablet
+    rx_price_brand: float = 11.19          # Viagra brand per tablet (pharmacy retail)
+    rx_price_generic: float = 1.50         # average generic per tablet (pharmacy retail)
     rx_brand_share: float = 0.10           # Viagra brand % of sildenafil volume
+    rx_manufacturer_share: float = 0.52    # manufacturer share of Rx retail price
+    # (retail - wholesale margin ~8% - pharmacy margin ~40% = ~52% ex-factory)
     # Note: rx_decline is no longer an independent parameter.
     # It is DERIVED from otc_from_rx_migration (= otc_tablets * (1 - new_patient_share)).
     # This ensures consistency: tablets that migrate from Rx to OTC are subtracted
@@ -184,26 +186,6 @@ def _otc_ramp(month: int, peak: int, ramp_months: int) -> float:
     return peak / (1.0 + np.exp(x))
 
 
-def _rx_effect(month: int, initial: int, decline_rate: float, decline_months: int) -> float:
-    """Rx volume with slow decline (UK reference: Rx may even grow initially).
-
-    Calibrated so that at month=decline_months the volume has declined by
-    exactly decline_rate (e.g. 8%) from the initial level.  Uses a half-life
-    approach: the half-life is set so that the exponential decay reaches the
-    target floor at the specified month.
-    """
-    if decline_months <= 0 or decline_rate <= 0:
-        return float(initial)
-    decline_rate = min(decline_rate, 0.99)  # guard against >= 1.0
-    floor = initial * (1.0 - decline_rate)
-    # Calibrate k so that floor + (initial - floor) * exp(-k * decline_months) = floor
-    # i.e. exp(-k * dm) = 0  -- we can't reach exactly zero, so instead calibrate so
-    # that at month=decline_months the decline is 95% complete:
-    # value(dm) = floor + 0.05 * (initial - floor)
-    # => exp(-k * dm) = 0.05  => k = -ln(0.05) / dm = ln(20) / dm
-    k = np.log(20.0) / decline_months
-    return floor + (initial - floor) * np.exp(-k * month)
-
 
 def _channel_share(base_share: float, trend: float, month: int) -> float:
     """Channel share evolution over time."""
@@ -230,7 +212,7 @@ def forecast_sildenafil_otc(
     - Tadalafil migration
     - Profitability (marketing as cost only, no volume feedback)
     """
-    months = forecast_months or params.forecast_months
+    months = forecast_months if forecast_months is not None else params.forecast_months
 
     rows = []
     cum = {
@@ -271,12 +253,13 @@ def forecast_sildenafil_otc(
         # This ensures consistency — tablets can't be in both pools.
         rx_tablets_base = max(0.0, params.rx_tablets_per_month - otc_from_rx_migration_pre)
         rx_tablets = rx_tablets_base * season_factor
-        # Weighted average Rx price per tablet
-        rx_avg_price = (
+        # Rx revenue = manufacturer share of retail (ex-factory),
+        # consistent with OTC which also uses manufacturer revenue.
+        rx_avg_retail_price = (
             params.rx_brand_share * params.rx_price_brand +
             (1 - params.rx_brand_share) * params.rx_price_generic
         )
-        rx_revenue = rx_tablets * rx_avg_price
+        rx_revenue = rx_tablets * rx_avg_retail_price * params.rx_manufacturer_share
 
         # --- Omnichannel distribution --------------------------
         # Calculate share for each channel with time evolution
@@ -336,12 +319,19 @@ def forecast_sildenafil_otc(
         # Brand premium: Viagra Connect sells at a premium vs. generic OTC.
         generic_price = otc_price_now
         brand_price = otc_price_now * params.brand_price_premium
-        # Brand revenue bonus = brand tablets x price delta (direct, no pack_size)
         brand_rev_bonus = otc_brand_tablets * (brand_price - generic_price)
-        # Apply average manufacturer share across channels
         avg_mfr_pct = total_otc_manufacturer_revenue / total_otc_retail_revenue if total_otc_retail_revenue > 0 else 0.52
-        total_otc_manufacturer_revenue += brand_rev_bonus * avg_mfr_pct
+        brand_mfr_bonus = brand_rev_bonus * avg_mfr_pct
+        total_otc_manufacturer_revenue += brand_mfr_bonus
         total_otc_retail_revenue += brand_rev_bonus
+        # Distribute brand premium proportionally across channels
+        for ch_name, ch_data in channel_data.items():
+            if total_otc_retail_revenue > 0:
+                ch_fraction = ch_data["retail_revenue"] / (total_otc_retail_revenue - brand_rev_bonus)
+            else:
+                ch_fraction = 0.5
+            ch_data["retail_revenue"] = round(ch_data["retail_revenue"] + brand_rev_bonus * ch_fraction)
+            ch_data["manufacturer_revenue"] = round(ch_data["manufacturer_revenue"] + brand_mfr_bonus * ch_fraction)
 
         # --- Volume decomposition (final, uses same values as pre-calc) ---
         otc_from_tadalafil = otc_from_tadalafil_pre

@@ -89,9 +89,11 @@ class SildenafilPatientParams:
     # --- Rx channel (pre-switch) --------------------------------
     rx_patients_monthly: int = 217_000      # patients receiving Rx sildenafil/month
     rx_tablets_per_patient: float = 4.0     # → 217K × 4 = 868K tablets/month
-    rx_price_brand: float = 11.19           # Viagra brand per tablet
-    rx_price_generic: float = 1.50          # generic per tablet
+    rx_price_brand: float = 11.19           # Viagra brand per tablet (pharmacy retail)
+    rx_price_generic: float = 1.50          # generic per tablet (pharmacy retail)
     rx_brand_share: float = 0.10            # Viagra brand % of Rx volume
+    rx_manufacturer_share: float = 0.52     # manufacturer share of Rx retail price
+    # (retail - wholesale margin ~8% - pharmacy margin ~40% ≈ 52% ex-factory)
     # Note: rx_decline is no longer an independent parameter.
     # It is DERIVED from otc_rxmigration_patients (= otc_active * (1 - new_patient_share)).
     # This ensures consistency: patients who leave Rx for OTC are subtracted
@@ -173,18 +175,6 @@ def _patient_uptake(month: int, addressable_patients: int, ramp_months: int) -> 
     return addressable_patients / (1.0 + np.exp(x))
 
 
-def _rx_effect(month: int, initial: float, decline_rate: float, decline_months: int) -> float:
-    """Rx volume with slow exponential decline.
-    DEPRECATED for patient engine — kept for volume engine compatibility.
-    Patient engine now derives Rx decline from actual OTC migration.
-    """
-    if decline_months <= 0 or decline_rate <= 0:
-        return float(initial)
-    decline_rate = min(decline_rate, 0.99)
-    floor = initial * (1.0 - decline_rate)
-    k = np.log(20.0) / decline_months
-    return floor + (initial - floor) * np.exp(-k * month)
-
 
 def _channel_share(base_share: float, trend: float, month: int) -> float:
     """Channel share evolution over time."""
@@ -206,7 +196,7 @@ def forecast_sildenafil_patient(
     Returns DataFrame with monthly data including patient counts,
     tablet volumes, channel splits, and profitability.
     """
-    months = forecast_months or params.forecast_months
+    months = forecast_months if forecast_months is not None else params.forecast_months
 
     # --- Derive key quantities from patient pool ----------------
     untreated = params.ed_prevalence_men * (1 - params.treatment_rate)
@@ -253,10 +243,11 @@ def forecast_sildenafil_patient(
         # Split active OTC patients by source
         otc_new_patients = otc_patients_active * params.new_patient_share
         otc_rxmigration_patients = otc_patients_active * (1 - params.new_patient_share)
+        # Cap migration at actual Rx pool size — can't migrate more patients
+        # than exist in the Rx channel.
+        otc_rxmigration_patients = min(otc_rxmigration_patients, float(params.rx_patients_monthly))
 
         # Rx patients: baseline MINUS those who migrated to OTC.
-        # This ensures consistency — patients can't be in both pools.
-        # Cap at 0 to prevent negative Rx counts if migration > baseline.
         rx_patients = max(0.0, params.rx_patients_monthly - otc_rxmigration_patients)
 
         # Total UNIQUE patients in treatment (no double-counting):
@@ -350,18 +341,29 @@ def forecast_sildenafil_patient(
         brand_rev_bonus = otc_brand_tablets * (brand_price - generic_price)
         avg_mfr_pct = (total_otc_manufacturer_revenue / total_otc_retail_revenue
                        if total_otc_retail_revenue > 0 else 0.52)
-        total_otc_manufacturer_revenue += brand_rev_bonus * avg_mfr_pct
+        brand_mfr_bonus = brand_rev_bonus * avg_mfr_pct
+        total_otc_manufacturer_revenue += brand_mfr_bonus
         total_otc_retail_revenue += brand_rev_bonus
+        # Distribute brand premium proportionally across channels
+        for ch_name, ch_data in channel_data.items():
+            if total_otc_retail_revenue > 0:
+                ch_fraction = ch_data["retail_revenue"] / (total_otc_retail_revenue - brand_rev_bonus)
+            else:
+                ch_fraction = 0.5
+            ch_data["retail_revenue"] = round(ch_data["retail_revenue"] + brand_rev_bonus * ch_fraction)
+            ch_data["manufacturer_revenue"] = round(ch_data["manufacturer_revenue"] + brand_mfr_bonus * ch_fraction)
 
         # ============================================================
         # STEP 5: Rx REVENUE
         # ============================================================
 
-        rx_avg_price = (
+        rx_avg_retail_price = (
             params.rx_brand_share * params.rx_price_brand +
             (1 - params.rx_brand_share) * params.rx_price_generic
         )
-        rx_revenue = rx_tablets * rx_avg_price
+        # Rx revenue = manufacturer share of retail (ex-factory),
+        # consistent with OTC which also uses manufacturer revenue.
+        rx_revenue = rx_tablets * rx_avg_retail_price * params.rx_manufacturer_share
 
         # ============================================================
         # STEP 6: PROFITABILITY
