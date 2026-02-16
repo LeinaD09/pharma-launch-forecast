@@ -628,11 +628,11 @@ else:
 # --- T23: Kassen GKV shares ---
 g_default = GenericParams()
 total_gkv = sum(k["gkv_share"] for k in g_default.tender_kassen)
-# Should be less than 1.0 (not all Kassen are covered)
-if total_gkv < 1.0:
-    record("T23", "Kassen GKV-Shares < 100%", "PASS", f"Summe={total_gkv:.3f} ({total_gkv*100:.1f}%)")
+# Should be <= 1.0 (inkl. Restl. Kassen darf es genau 100% sein)
+if total_gkv <= 1.001:
+    record("T23", "Kassen GKV-Shares <= 100%", "PASS", f"Summe={total_gkv:.3f} ({total_gkv*100:.1f}%)")
 else:
-    record("T23", "Kassen GKV-Shares < 100%", "FAIL", f"Summe={total_gkv:.3f} - ueber 100%!")
+    record("T23", "Kassen GKV-Shares <= 100%", "FAIL", f"Summe={total_gkv:.3f} - ueber 100%!")
 
 # --- T24: market_data.py crash test ---
 try:

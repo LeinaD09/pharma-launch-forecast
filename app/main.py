@@ -270,11 +270,12 @@ def show():
                     tender_start = st.slider("Start nach (Mon.)", 0, 12, 3, 1)
                     st.caption("**Kassen \u2014 Rabattvertrag gewonnen:**")
                     kassen_defaults = [
-                        ("TK",      11.5, 0.158, True,  "Ziel"),
-                        ("BARMER",   8.7, 0.119, True,  "Ziel"),
-                        ("DAK",      5.5, 0.075, True,  "Ziel"),
-                        ("AOK Bay",  4.6, 0.063, False, "Optional"),
-                        ("AOK BW",   4.5, 0.062, False, "Optional"),
+                        ("TK",            11.5, 0.158, True,  "Ziel"),
+                        ("BARMER",         8.7, 0.119, True,  "Ziel"),
+                        ("DAK",            5.5, 0.075, True,  "Ziel"),
+                        ("AOK Bay",        4.6, 0.063, False, "Optional"),
+                        ("AOK BW",         4.5, 0.062, False, "Optional"),
+                        ("Restl. Kassen", 26.8, 0.368, False, "Nachrangig"),
                     ]
                     tender_kassen = []
                     for name, lives, gkv_share, default_won, status in kassen_defaults:
@@ -297,12 +298,6 @@ def show():
                     tender_kassen = []
                     my_tender_share_pct = 50
 
-                my_aut_idem_capture = 0.30
-                if aut_idem_enabled:
-                    my_aut_idem_capture = st.slider(
-                        "Mein Aut-idem-Anteil (%)", 10, 60, 30, 5
-                    ) / 100
-
             params = GenericParams(
                 my_company_name=company_name,
                 launch_month_offset=launch_offset,
@@ -319,7 +314,6 @@ def show():
                 aut_idem_quote_peak=aut_idem_peak / 100,
                 aut_idem_ramp_months=aut_idem_ramp,
                 aut_idem_full_months=aut_idem_full,
-                my_aut_idem_capture=my_aut_idem_capture,
                 tender_enabled=tender_enabled,
                 tender_start_month=tender_start if tender_enabled else 3,
                 tender_kassen=tender_kassen if tender_kassen else None,

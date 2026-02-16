@@ -98,7 +98,6 @@ class GenericParams:
     aut_idem_quote_peak: float = 0.75
     aut_idem_ramp_months: int = 6         # Delay until Festbetrag active
     aut_idem_full_months: int = 12
-    my_aut_idem_capture: float = 0.30     # My share of aut-idem substitutions
 
     # Tender parameters
     tender_enabled: bool = True
@@ -121,6 +120,7 @@ class GenericParams:
                 {"name": "IKK classic", "gkv_share": 0.041, "won": False, "status": "Nachrangig"},
                 {"name": "KKH", "gkv_share": 0.021, "won": False, "status": "Nachrangig"},
                 {"name": "hkk", "gkv_share": 0.012, "won": False, "status": "Nachrangig"},
+                {"name": "Restl. Kassen", "gkv_share": 0.368, "won": False, "status": "Nachrangig"},
             ]
 
 
@@ -451,8 +451,7 @@ def forecast_generic(
                     t, params.aut_idem_ramp_months,
                     params.aut_idem_full_months, params.aut_idem_quote_peak
                 )
-                aut_idem_pct = aut_idem_rate * params.my_aut_idem_capture
-                aut_idem_trx = int(remaining_after_tender * aut_idem_pct)
+                aut_idem_trx = int(remaining_after_tender * aut_idem_rate)
 
             # --- Organic (Rest: Arzt verschreibt direkt Generikum) ---
             organic_trx = my_trx - tender_trx - aut_idem_trx
