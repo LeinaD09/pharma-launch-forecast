@@ -39,14 +39,16 @@ def show():
     st.markdown("""
     <style>
         .block-container { padding-top: 1rem !important; padding-bottom: 0.5rem !important; }
+        .kpi-row { display: flex; gap: 8px; margin-bottom: 6px; }
         .kpi-card, .kpi-card-teal, .kpi-card-amber,
         .kpi-card-green, .kpi-card-red, .kpi-card-purple {
             background: #ffffff;
             border: 1px solid #e5e7eb;
             border-radius: 8px; padding: 10px 8px;
             color: #1e293b;
-            text-align: center; margin: 2px 0;
+            text-align: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            flex: 1; min-width: 0;
         }
         .kpi-value { font-size: 18px; font-weight: 700; margin: 2px 0; line-height: 1.2; color: #0f172a; }
         .kpi-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -190,65 +192,60 @@ def show():
                 f"Dual-Channel Apotheken-Modell (apothekenpflichtig)*")
 
     # ===================================================================
-    # KPI CARDS (Row 1)
+    # KPI CARDS (Row 1 + 2) — rendered as pure HTML flexbox
     # ===================================================================
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.markdown(f"""<div class="kpi-card-teal">
+    co_rev = kpis.get("crossover_month")
+    co_tabs = kpis.get("crossover_month_tablets")
+    co_text = f"M{co_rev} / M{co_tabs}" if co_rev and co_tabs else (
+        f"Monat {co_rev}" if co_rev else "–"
+    )
+
+    st.markdown(f"""
+    <div class="kpi-row">
+        <div class="kpi-card-teal">
             <div class="kpi-label">OTC Umsatz J1</div>
             <div class="kpi-value">EUR {kpis['year1_otc_revenue']/1e6:.1f}M</div>
             <div class="kpi-sublabel">Herstellerumsatz</div>
-        </div>""", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""<div class="kpi-card">
+        </div>
+        <div class="kpi-card">
             <div class="kpi-label">Gesamtumsatz 5J</div>
             <div class="kpi-value">EUR {kpis['total_5y_revenue']/1e6:.0f}M</div>
             <div class="kpi-sublabel">Rx + OTC kumuliert</div>
-        </div>""", unsafe_allow_html=True)
-    with c3:
-        co_rev = kpis.get("crossover_month")
-        co_tabs = kpis.get("crossover_month_tablets")
-        co_text = f"M{co_rev} / M{co_tabs}" if co_rev and co_tabs else (
-            f"Monat {co_rev}" if co_rev else "–"
-        )
-        st.markdown(f"""<div class="kpi-card-amber">
+        </div>
+        <div class="kpi-card-amber">
             <div class="kpi-label">OTC > Rx ab</div>
             <div class="kpi-value">{co_text}</div>
             <div class="kpi-sublabel">Umsatz / Tabletten</div>
-        </div>""", unsafe_allow_html=True)
-    with c4:
-        st.markdown(f"""<div class="kpi-card-green">
+        </div>
+        <div class="kpi-card-green">
             <div class="kpi-label">Gewinn 5J</div>
             <div class="kpi-value">EUR {kpis['total_5y_profit']/1e6:.0f}M</div>
             <div class="kpi-sublabel">nach Marketing & COGS</div>
-        </div>""", unsafe_allow_html=True)
-
-    # KPI Row 2
-    c5, c6, c7, c8 = st.columns(4)
-    with c5:
-        st.markdown(f"""<div class="kpi-card-purple">
+        </div>
+    </div>
+    <div class="kpi-row">
+        <div class="kpi-card-purple">
             <div class="kpi-label">Online-Anteil M24</div>
             <div class="kpi-value">{kpis['online_share_m24']:.0%}</div>
             <div class="kpi-sublabel">Online-Apotheke</div>
-        </div>""", unsafe_allow_html=True)
-    with c6:
-        st.markdown(f"""<div class="kpi-card">
+        </div>
+        <div class="kpi-card">
             <div class="kpi-label">Markenanteil M12</div>
             <div class="kpi-value">{kpis['brand_share_m12']:.0%}</div>
             <div class="kpi-sublabel">Viagra vs. Generika</div>
-        </div>""", unsafe_allow_html=True)
-    with c7:
-        st.markdown(f"""<div class="kpi-card-red">
+        </div>
+        <div class="kpi-card-red">
             <div class="kpi-label">Rx-Rückgang</div>
             <div class="kpi-value">{kpis['rx_decline_total']:.0%}</div>
             <div class="kpi-sublabel">über 5 Jahre</div>
-        </div>""", unsafe_allow_html=True)
-    with c8:
-        st.markdown(f"""<div class="kpi-card-green">
+        </div>
+        <div class="kpi-card-green">
             <div class="kpi-label">Therapiequote</div>
             <div class="kpi-value">{kpis['treatment_rate_final']:.0%}</div>
             <div class="kpi-sublabel">vorher: 30%</div>
-        </div>""", unsafe_allow_html=True)
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
 
