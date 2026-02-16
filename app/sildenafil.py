@@ -43,15 +43,14 @@ def show():
         .kpi-card-green, .kpi-card-red, .kpi-card-purple {
             background: #ffffff;
             border: 1px solid #e5e7eb;
-            border-radius: 8px; padding: 10px 6px;
+            border-radius: 8px; padding: 10px 8px;
             color: #1e293b;
             text-align: center; margin: 2px 0;
             box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-            min-width: 0; overflow: visible;
         }
-        .kpi-value { font-size: 17px; font-weight: 700; margin: 2px 0; line-height: 1.2; color: #0f172a; white-space: nowrap; }
-        .kpi-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; overflow: visible; }
-        .kpi-sublabel { font-size: 9px; color: #94a3b8; margin-top: 1px; white-space: nowrap; }
+        .kpi-value { font-size: 18px; font-weight: 700; margin: 2px 0; line-height: 1.2; color: #0f172a; }
+        .kpi-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-sublabel { font-size: 9px; color: #94a3b8; margin-top: 1px; }
         div[data-testid="stSidebar"] {
             background-color: #f8fafc;
             min-width: 280px !important; max-width: 320px !important; width: 300px !important;
