@@ -269,7 +269,7 @@ def show():
                 sga_monthly = st.number_input("SG&A / Monat (\u20ac)", 50_000, 500_000, 150_000, 25_000)
                 launch_invest = st.number_input("Launch-Invest (\u20ac)", 0, 2_000_000, 500_000, 100_000)
 
-            with st.expander("Rabattvertr\u00e4ge / Tender", expanded=False):
+            with st.expander("Meine Rabattvertr\u00e4ge", expanded=False):
                 tender_enabled = st.checkbox("Tender modellieren", value=True,
                                              help="\u00a7130a SGB V")
                 if tender_enabled:
