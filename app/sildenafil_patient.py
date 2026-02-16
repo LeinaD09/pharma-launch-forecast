@@ -96,7 +96,7 @@ def show():
                       new_patient=55, rx_decline=12, brand_share=20,
                       tablets_per_pat=3.5)
         else:
-            _d = dict(addressable=14, ramp=18, mktg=500_000,
+            _d = dict(addressable=15, ramp=18, mktg=500_000,
                       new_patient=63, rx_decline=8, brand_share=25,
                       tablets_per_pat=4.0)
 

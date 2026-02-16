@@ -71,8 +71,8 @@ class SildenafilPatientParams:
     # What % of the untreated pool is addressable via OTC?
     # Not everyone will buy: some have contraindications, some won't
     # self-select, some prefer doctor relationship.
-    addressable_pct: float = 0.14           # 14% of untreated would buy OTC at steady state
-    # → addressable pool = 3,500,000 × 14% = 490,000 patients
+    addressable_pct: float = 0.15           # 15% of untreated would buy OTC at steady state
+    # → addressable pool = 3,500,000 × 15% = 525,000 patients
 
     # How fast does the addressable pool get activated?
     uptake_ramp_months: int = 18            # logistic ramp to reach ~95% of addressable
@@ -80,7 +80,7 @@ class SildenafilPatientParams:
 
     # --- Patient Behavior ---------------------------------------
     tablets_per_patient_per_month: float = 4.0   # avg. usage frequency
-    # → peak OTC tablets = 490,000 × 4 = 1,960,000 /month
+    # → peak OTC tablets = 525,000 × 4 = 2,100,000 /month
 
     # --- Patient Source Mix -------------------------------------
     new_patient_share: float = 0.63         # UK reference: 63% new-to-therapy
