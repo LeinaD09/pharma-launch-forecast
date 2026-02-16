@@ -626,7 +626,7 @@ def show():
                     annotation_text=f"OTC > Rx (M{co_rev})",
                 )
             fig_rxotc_gp.update_layout(
-                barmode="stack",
+                barmode="group",
                 title="Bruttomarge: Rx vs. OTC (nach COGS)",
                 xaxis_title="Monate", yaxis_title="EUR",
                 height=400,
