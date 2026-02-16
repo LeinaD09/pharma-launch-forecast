@@ -59,7 +59,6 @@ class ChannelParams:
     share_trend_annual: float = -0.02    # annual shift (neg = losing share)
     margin_pct: float = 0.42            # pharmacy/platform margin
     distribution_cost_pct: float = 0.06  # logistics
-    avg_basket_multiplier: float = 1.0   # impulse/cross-sell effect
     discretion_factor: float = 0.8       # 1.0 = max discretion, affects stigma-driven demand
 
 
@@ -102,7 +101,6 @@ class SildenafilOtcParams:
 
     # --- Market expansion (the core thesis) ---------------------
     new_patient_share: float = 0.63        # UK reference: 63% were new-to-therapy
-    stigma_reduction_factor: float = 0.40  # OTC removes stigma -> 40% of barrier gone
     tablets_per_patient_per_month: float = 4.0  # avg tablets/patient/month (for treatment gap calc)
 
     # --- Brand vs. Generic OTC ----------------------------------
@@ -125,7 +123,6 @@ class SildenafilOtcParams:
             share_trend_annual=-0.02,   # ABDA ZDF 2024: OTC online +1.5-2 pp/yr (2019-2024)
             margin_pct=0.42,
             distribution_cost_pct=0.06,
-            avg_basket_multiplier=1.0,
             discretion_factor=0.70,     # lower: face-to-face = more stigma
         ),
         ChannelParams(
@@ -134,7 +131,6 @@ class SildenafilOtcParams:
             share_trend_annual=0.02,    # ABDA ZDF 2024: ~+1.5-2 pp/yr general OTC
             margin_pct=0.30,            # lower margin, competitive pricing
             distribution_cost_pct=0.10, # shipping costs
-            avg_basket_multiplier=1.15, # cross-sell via recommendation engines
             discretion_factor=1.0,      # maximum: anonymous ordering
         ),
     ])
