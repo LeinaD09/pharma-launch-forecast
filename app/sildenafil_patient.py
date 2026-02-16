@@ -278,9 +278,9 @@ def show():
             <div class="kpi-sublabel">aktive OTC-Kaeufer</div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-label">Neu behandelt (kum.)</div>
+            <div class="kpi-label">Neue OTC-Patienten</div>
             <div class="kpi-value">{kpis['newly_treated_total']:,.0f}</div>
-            <div class="kpi-sublabel">vorher nie beim Arzt</div>
+            <div class="kpi-sublabel">aktiv, vorher nie beim Arzt</div>
         </div>
         <div class="kpi-card-red">
             <div class="kpi-label">Rx-Rueckgang</div>
@@ -447,11 +447,11 @@ def show():
         st.dataframe(pd.DataFrame(funnel_data), hide_index=True, width=700)
 
         st.info(
-            "**Konsistenz-Check:** Die Therapiequote wird aus den tatsaechlichen "
-            "OTC-Neupatienten abgeleitet (kumulierte Tabletten neue Patienten / "
-            "Tabletten pro Patient), nicht unabhaengig berechnet. "
-            f"Kumuliert **{kpis['newly_treated_total']:,.0f}** neue Patienten "
-            f"nach 5 Jahren → Therapiequote steigt von {params.treatment_rate:.0%} "
+            "**Konsistenz-Check:** Die Therapiequote wird aus den tatsaechlich "
+            "aktiven OTC-Neupatienten abgeleitet (Anteil neue Patienten an "
+            "aktiven OTC-Kaeufern), nicht unabhaengig berechnet. "
+            f"Peak: **{kpis['newly_treated_total']:,.0f}** aktive Neupatienten "
+            f"→ Therapiequote steigt von {params.treatment_rate:.0%} "
             f"auf {kpis['treatment_rate_final']:.0%}."
         )
 
@@ -666,7 +666,7 @@ def show():
             "OTC Umsatz M12": f"EUR {k['year1_otc_revenue']/1e6:.0f}M",
             "Gesamt M12": f"EUR {k['year1_total_revenue']/1e6:.0f}M",
             "Gewinn 5J": f"EUR {k['total_5y_profit']/1e6:.0f}M",
-            "Neue Pat. 5J": f"{k['newly_treated_total']:,.0f}",
+            "Neue Pat. (Peak)": f"{k['newly_treated_total']:,.0f}",
             "Therapiequote": f"{k['treatment_rate_final']:.0%}",
         })
 

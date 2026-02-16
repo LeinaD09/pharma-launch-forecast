@@ -221,7 +221,6 @@ def forecast_sildenafil_patient(
     cum = {
         "otc_revenue": 0.0, "rx_revenue": 0.0, "total_revenue": 0.0,
         "profit": 0.0, "marketing": 0.0,
-        "new_patient_tablets": 0.0,
     }
 
     for m in range(1, months + 1):
@@ -374,20 +373,18 @@ def forecast_sildenafil_patient(
         cum["total_revenue"] += total_revenue
         cum["profit"] += operating_profit
         cum["marketing"] += marketing_spend
-        cum["new_patient_tablets"] += otc_from_new_patients
-
         # ============================================================
         # STEP 7: TREATMENT GAP (derived from actual patients!)
         # ============================================================
 
-        # This is the key difference: newly_treated comes from
-        # the actual OTC patient flow, not an independent metric.
-        newly_treated_cumulative = round(
-            cum["new_patient_tablets"] / params.tablets_per_patient_per_month
-        )
-        treatment_rate_new = params.treatment_rate + (
-            newly_treated_cumulative / params.ed_prevalence_men
-        )
+        # newly_treated = active OTC patients who are new-to-therapy
+        # (i.e. otc_new_patients this month, NOT cumulative tablets).
+        # These are patients currently in treatment who were previously
+        # untreated — they raise the effective treatment rate.
+        active_new_patients = round(otc_new_patients)
+        treatment_rate_new = min(1.0, params.treatment_rate + (
+            active_new_patients / params.ed_prevalence_men
+        ))
 
         rows.append({
             "month": m,
@@ -452,7 +449,7 @@ def forecast_sildenafil_patient(
 
             # Treatment gap (derived from actual OTC patients)
             "treatment_rate_effective": treatment_rate_new,
-            "newly_treated_cumulative": newly_treated_cumulative,
+            "active_new_patients": active_new_patients,
 
             # Derived metrics for display
             "otc_peak_tablets_computed": round(otc_peak_tablets),
@@ -517,7 +514,7 @@ def calculate_kpis_patient(df: pd.DataFrame) -> dict:
         "online_share_m12": online_share_m12,
         "online_share_m24": online_share_m24,
         "treatment_rate_final": last["treatment_rate_effective"],
-        "newly_treated_total": last["newly_treated_cumulative"],
+        "newly_treated_total": int(df["active_new_patients"].max()),
         "addressable_patients": last["addressable_patients"],
         "otc_peak_computed": last["otc_peak_tablets_computed"],
     }
