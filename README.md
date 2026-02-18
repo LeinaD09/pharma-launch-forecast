@@ -1,5 +1,7 @@
 # Pharma Launch Forecast
 
+> **Language:** English | [Deutsch](README.de.md)
+
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pharma-launch-forecasts.streamlit.app/)
 
 Interactive forecast models for pharmaceutical product launches in Germany. Built with Python, Streamlit, and Plotly.
